@@ -13,17 +13,38 @@ jobs:
 
     steps:
       - name: Check out import branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: agent/initial-stabilization
           fetch-depth: 0
 
-      - name: Expand source archive
+      - name: Verify and expand source archive
         shell: bash
         run: |
           set -euo pipefail
-          cat .bootstrap/part-* > /tmp/battle-earth-source.tar.xz
-          tar -xJf /tmp/battle-earth-source.tar.xz -C .
+
+          archive=.bootstrap/battle-earth-source.tar.xz
+          checksum=.bootstrap/SHA256
+
+          if [[ ! -f "$archive" ]]; then
+            echo "Missing $archive"
+            echo "Upload the verified archive to the agent/initial-stabilization branch before running this workflow."
+            exit 1
+          fi
+
+          if [[ ! -f "$checksum" ]]; then
+            echo "Missing $checksum"
+            exit 1
+          fi
+
+          echo "Archive size: $(stat --format='%s bytes' "$archive")"
+          (
+            cd .bootstrap
+            sha256sum --check SHA256
+            xz --test battle-earth-source.tar.xz
+          )
+
+          tar -xJf "$archive" -C .
           rm -rf .bootstrap
           rm -f .github/workflows/bootstrap-import.yml
 
