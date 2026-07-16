@@ -1,0 +1,41 @@
+name: Bootstrap source import
+
+on:
+  push:
+    branches:
+      - agent/initial-stabilization
+    paths:
+      - .bootstrap/READY
+
+permissions:
+  contents: write
+
+jobs:
+  import-source:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+
+      - name: Expand source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .bootstrap/chunk-* > /tmp/battle-earth-source.tar.gz.b64
+          base64 --decode /tmp/battle-earth-source.tar.gz.b64 > /tmp/battle-earth-source.tar.gz
+          tar -xzf /tmp/battle-earth-source.tar.gz -C .
+          rm -rf .bootstrap
+          rm -f .github/workflows/bootstrap-import.yml
+
+      - name: Commit imported project
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "Import and stabilize Battle Earth"
+          git push
