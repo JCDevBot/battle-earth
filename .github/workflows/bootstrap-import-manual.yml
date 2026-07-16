@@ -48,6 +48,10 @@ jobs:
           rm -rf .bootstrap
           rm -f .github/workflows/bootstrap-import.yml
 
+          # The workflow token cannot create another workflow file. CI is
+          # committed separately after the source import succeeds.
+          rm -f .github/workflows/ci.yml
+
       - name: Commit imported project
         shell: bash
         run: |
