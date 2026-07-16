@@ -1,0 +1,48 @@
+name: Import Battle Earth source
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out import branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/initial-stabilization
+          fetch-depth: 0
+
+      - name: Expand source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .bootstrap/part-* > /tmp/battle-earth-source.tar.xz
+          tar -xJf /tmp/battle-earth-source.tar.xz -C .
+          rm -rf .bootstrap
+          rm -f .github/workflows/bootstrap-import.yml
+
+      - name: Commit imported project
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "Import and stabilize Battle Earth"
+          git push origin HEAD:agent/initial-stabilization
+
+      - name: Remove one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git switch --force-create main origin/main
+          git rm .github/workflows/bootstrap-import-manual.yml
+          git commit -m "Remove completed source import workflow"
+          git push origin main
