@@ -88,9 +88,9 @@ jobs:
           path: build-report.txt
           if-no-files-found: error
 
-      - name: Smoke test production preview
+      - name: Smoke test production output
         run: |
-          npm run preview -- --host 127.0.0.1 --port 4173 > preview-report.txt 2>&1 &
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist > preview-report.txt 2>&1 &
           preview_pid=$!
           trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
 
