@@ -3,12 +3,16 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 
-const recommendedAsWarnings = Object.fromEntries(
-  Object.entries(js.configs.recommended.rules).map(([name, value]) => [
-    name,
-    value === "error" ? "warn" : value,
-  ]),
-);
+const asWarnings = (rules) =>
+  Object.fromEntries(
+    Object.entries(rules).map(([name, value]) => [
+      name,
+      value === "error" || value === 2 ? "warn" : value,
+    ]),
+  );
+
+const recommendedAsWarnings = asWarnings(js.configs.recommended.rules);
+const reactHooksAsWarnings = asWarnings(reactHooks.configs.recommended.rules);
 
 export default [
   {
@@ -39,7 +43,7 @@ export default [
     },
     rules: {
       ...recommendedAsWarnings,
-      ...reactHooks.configs.recommended.rules,
+      ...reactHooksAsWarnings,
       "react-hooks/exhaustive-deps": "warn",
       "react-refresh/only-export-components": [
         "warn",
