@@ -11,7 +11,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Check out repository
@@ -21,10 +21,9 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 20.19.4
-          cache: npm
 
       - name: Pin npm
-        run: npm install --global npm@10.9.2 --no-audit --no-fund
+        run: npm install --global npm@10.8.0 --no-audit --no-fund
 
       - name: Report tool versions
         run: |
@@ -32,13 +31,14 @@ jobs:
           npm --version
 
       - name: Install dependencies
+        env:
+          npm_config_audit: "false"
+          npm_config_fund: "false"
+          npm_config_fetch_retries: "5"
+          npm_config_fetch_retry_maxtimeout: "120000"
         run: |
-          for attempt in 1 2; do
-            npm ci --no-audit --no-fund && exit 0
-            echo "npm ci failed on attempt ${attempt}; cleaning npm cache before retry"
-            npm cache clean --force
-          done
-          exit 1
+          npm cache clean --force
+          npm ci --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
