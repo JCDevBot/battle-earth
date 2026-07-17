@@ -3,6 +3,7 @@ import {
   APP_STAGES,
   canRenderStage,
   getStageForLocation,
+  hasValidLocationCoordinates,
 } from "../src/app/stageRouting.js";
 
 describe("app stage routing", () => {
@@ -36,6 +37,31 @@ describe("app stage routing", () => {
   it("prevents campaign rendering without a battle request", () => {
     expect(
       canRenderStage(APP_STAGES.CAMPAIGN, { lat: 44.98, lon: -93.26 }),
+    ).toBe(false);
+  });
+
+  it("accepts numeric coordinate strings from form-driven location selection", () => {
+    const location = { lat: "44.98", lon: "-93.26" };
+
+    expect(hasValidLocationCoordinates(location)).toBe(true);
+    expect(getStageForLocation(location)).toBe(APP_STAGES.TACTICAL);
+  });
+
+  it.each([
+    { lat: undefined, lon: -93.26 },
+    { lat: 44.98, lon: undefined },
+    { lat: "not-a-number", lon: -93.26 },
+    { lat: 91, lon: -93.26 },
+    { lat: 44.98, lon: -181 },
+  ])("keeps invalid locations out of renderable stages: %o", (location) => {
+    expect(hasValidLocationCoordinates(location)).toBe(false);
+    expect(getStageForLocation(location)).toBe(APP_STAGES.GLOBE);
+    expect(canRenderStage(APP_STAGES.TACTICAL, location)).toBe(false);
+    expect(
+      canRenderStage(APP_STAGES.CAMPAIGN, {
+        ...location,
+        battleRequest: { launchType: "campaign" },
+      }),
     ).toBe(false);
   });
 });
