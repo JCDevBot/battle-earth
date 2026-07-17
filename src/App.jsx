@@ -3,6 +3,7 @@ import {
   APP_STAGES,
   canRenderStage,
   getStageForLocation,
+  normalizeSelectedLocation,
 } from "./app/stageRouting.js";
 import { GlobePicker } from "./components/GlobePicker";
 
@@ -73,6 +74,18 @@ export default function App() {
     setStage(APP_STAGES.GLOBE);
   };
 
+  const launchLocation = (selectedLocation) => {
+    const normalizedLocation = normalizeSelectedLocation(selectedLocation);
+
+    if (!normalizedLocation) {
+      returnToGlobe();
+      return;
+    }
+
+    setLocation(normalizedLocation);
+    setStage(getStageForLocation(normalizedLocation));
+  };
+
   if (
     stage === APP_STAGES.CAMPAIGN &&
     canRenderStage(APP_STAGES.CAMPAIGN, location)
@@ -83,10 +96,7 @@ export default function App() {
           <CampaignStage
             battleRequest={location.battleRequest}
             onBack={returnToGlobe}
-            onLaunchTactical={(loc) => {
-              setLocation(loc);
-              setStage(getStageForLocation(loc));
-            }}
+            onLaunchTactical={launchLocation}
           />
         </Suspense>
       </StageErrorBoundary>
@@ -112,12 +122,5 @@ export default function App() {
     );
   }
 
-  return (
-    <GlobePicker
-      onSelect={(loc) => {
-        setLocation(loc);
-        setStage(getStageForLocation(loc));
-      }}
-    />
-  );
+  return <GlobePicker onSelect={launchLocation} />;
 }
