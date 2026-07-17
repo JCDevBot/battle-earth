@@ -34,7 +34,15 @@ jobs:
           npm_config_fund: "false"
           npm_config_fetch_retries: "5"
           npm_config_fetch_retry_maxtimeout: "120000"
-        run: npm ci --no-audit --no-fund
+        run: npm ci --no-audit --no-fund 2>&1 | tee npm-ci.log
+
+      - name: Upload install diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-ci-diagnostics
+          path: npm-ci.log
+          if-no-files-found: error
 
       - name: Lint
         run: npm run lint 2>&1 | tee lint-report.txt
@@ -45,7 +53,7 @@ jobs:
         with:
           name: lint-diagnostics
           path: lint-report.txt
-          if-no-files-found: error
+          if-no-files-found: ignore
 
       - name: Test
         run: npm test
