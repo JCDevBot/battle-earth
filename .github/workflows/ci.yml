@@ -78,4 +78,12 @@ jobs:
           if-no-files-found: error
 
       - name: Build
-        run: npm run build
+        run: npm run build 2>&1 | tee build-report.txt
+
+      - name: Upload build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics
+          path: build-report.txt
+          if-no-files-found: error
