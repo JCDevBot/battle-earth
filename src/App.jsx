@@ -1,5 +1,9 @@
 import { lazy, Suspense, useState } from "react";
-import { APP_STAGES, getStageForLocation } from "./app/stageRouting.js";
+import {
+  APP_STAGES,
+  canRenderStage,
+  getStageForLocation,
+} from "./app/stageRouting.js";
 import { GlobePicker } from "./components/GlobePicker";
 
 const CampaignStage = lazy(() =>
@@ -27,7 +31,7 @@ export default function App() {
   const [stage, setStage] = useState(APP_STAGES.GLOBE);
   const [location, setLocation] = useState(null);
 
-  if (stage === APP_STAGES.CAMPAIGN && location?.battleRequest) {
+  if (canRenderStage(APP_STAGES.CAMPAIGN, location) && stage === APP_STAGES.CAMPAIGN) {
     return (
       <Suspense fallback={<StageLoadingFallback />}>
         <CampaignStage
@@ -35,14 +39,14 @@ export default function App() {
           onBack={() => setStage(APP_STAGES.GLOBE)}
           onLaunchTactical={(loc) => {
             setLocation(loc);
-            setStage(APP_STAGES.TACTICAL);
+            setStage(getStageForLocation(loc));
           }}
         />
       </Suspense>
     );
   }
 
-  if (stage === APP_STAGES.TACTICAL && location) {
+  if (canRenderStage(APP_STAGES.TACTICAL, location) && stage === APP_STAGES.TACTICAL) {
     return (
       <Suspense fallback={<StageLoadingFallback />}>
         <TacticalStage
