@@ -34,7 +34,9 @@ jobs:
           npm_config_fund: "false"
           npm_config_fetch_retries: "5"
           npm_config_fetch_retry_maxtimeout: "120000"
-        run: npm ci --no-audit --no-fund 2>&1 | tee npm-ci.log
+        run: |
+          set -o pipefail
+          npm ci --no-audit --no-fund 2>&1 | tee npm-ci.log
 
       - name: Upload install diagnostics
         if: failure()
@@ -45,7 +47,9 @@ jobs:
           if-no-files-found: error
 
       - name: Lint
-        run: npm run lint 2>&1 | tee lint-report.txt
+        run: |
+          set -o pipefail
+          npm run lint 2>&1 | tee lint-report.txt
 
       - name: Upload lint diagnostics
         if: failure()
@@ -56,7 +60,9 @@ jobs:
           if-no-files-found: ignore
 
       - name: Test
-        run: npm test 2>&1 | tee test-report.txt
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee test-report.txt
 
       - name: Upload test diagnostics
         if: failure()
@@ -67,7 +73,9 @@ jobs:
           if-no-files-found: error
 
       - name: Check formatting
-        run: npm run format:check 2>&1 | tee format-report.txt
+        run: |
+          set -o pipefail
+          npm run format:check 2>&1 | tee format-report.txt
 
       - name: Upload formatting diagnostics
         if: failure()
@@ -78,7 +86,10 @@ jobs:
           if-no-files-found: error
 
       - name: Build
-        run: npm run build 2>&1 | tee build-report.txt
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build-report.txt
+          test -f dist/index.html
 
       - name: Upload build diagnostics
         if: failure()
@@ -90,7 +101,7 @@ jobs:
 
       - name: Smoke test production output
         run: |
-          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist > preview-report.txt 2>&1 &
+          python3 -m http.server --bind 127.0.0.1 --directory "$PWD/dist" 4173 > preview-report.txt 2>&1 &
           preview_pid=$!
           trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
 
