@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   APP_STAGES,
+  DEFAULT_TACTICAL_SIZE_METERS,
   canRenderStage,
   getStageForLocation,
   hasValidLocationCoordinates,
+  normalizeSelectedLocation,
 } from "../src/app/stageRouting.js";
 
 describe("stage routing", () => {
@@ -21,6 +23,33 @@ describe("stage routing", () => {
     expect(hasValidLocationCoordinates({ lat: "not-a-number", lon: 0 })).toBe(
       false,
     );
+  });
+
+  it("normalizes selected locations before launching a rendered stage", () => {
+    expect(
+      normalizeSelectedLocation({
+        lat: "44.95",
+        lon: "-93.09",
+        sizeMeters: "1000",
+        selectedName: "Saint Paul",
+      }),
+    ).toEqual({
+      lat: 44.95,
+      lon: -93.09,
+      sizeMeters: 1000,
+      selectedName: "Saint Paul",
+    });
+  });
+
+  it("uses a safe tactical size when a selection supplies an invalid size", () => {
+    expect(
+      normalizeSelectedLocation({ lat: 44.95, lon: -93.09, sizeMeters: -1 }),
+    ).toEqual({
+      lat: 44.95,
+      lon: -93.09,
+      sizeMeters: DEFAULT_TACTICAL_SIZE_METERS,
+    });
+    expect(normalizeSelectedLocation({ lat: 91, lon: -93.09 })).toBeNull();
   });
 
   it("routes a selected location directly into the tactical stage by default", () => {
