@@ -87,3 +87,31 @@ jobs:
           name: build-diagnostics
           path: build-report.txt
           if-no-files-found: error
+
+      - name: Smoke test production preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > preview-report.txt 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error \
+              http://127.0.0.1:4173/ \
+              --output preview-index.html; then
+              break
+            fi
+            sleep 1
+          done
+
+          test -s preview-index.html
+          grep --fixed-strings '<div id="root"></div>' preview-index.html
+
+      - name: Upload preview diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-diagnostics
+          path: |
+            preview-report.txt
+            preview-index.html
+          if-no-files-found: warn
