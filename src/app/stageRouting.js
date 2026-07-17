@@ -4,6 +4,10 @@ export const APP_STAGES = Object.freeze({
   TACTICAL: "tactical",
 });
 
+export const DEFAULT_TACTICAL_SIZE_METERS = 350;
+const MIN_TACTICAL_SIZE_METERS = 100;
+const MAX_TACTICAL_SIZE_METERS = 5000;
+
 export function hasValidLocationCoordinates(location) {
   const lat = Number(location?.lat);
   const lon = Number(location?.lon);
@@ -16,6 +20,25 @@ export function hasValidLocationCoordinates(location) {
     lon >= -180 &&
     lon <= 180
   );
+}
+
+export function normalizeSelectedLocation(location) {
+  if (!hasValidLocationCoordinates(location)) return null;
+
+  const requestedSize = Number(location?.sizeMeters);
+  const sizeMeters =
+    Number.isFinite(requestedSize) &&
+    requestedSize >= MIN_TACTICAL_SIZE_METERS &&
+    requestedSize <= MAX_TACTICAL_SIZE_METERS
+      ? requestedSize
+      : DEFAULT_TACTICAL_SIZE_METERS;
+
+  return {
+    ...location,
+    lat: Number(location.lat),
+    lon: Number(location.lon),
+    sizeMeters,
+  };
 }
 
 export function getStageForLocation(location) {
