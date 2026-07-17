@@ -3,12 +3,21 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 
+const warningSeverity = (value) => {
+  if (value === "error" || value === 2) {
+    return "warn";
+  }
+
+  if (Array.isArray(value) && (value[0] === "error" || value[0] === 2)) {
+    return ["warn", ...value.slice(1)];
+  }
+
+  return value;
+};
+
 const asWarnings = (rules) =>
   Object.fromEntries(
-    Object.entries(rules).map(([name, value]) => [
-      name,
-      value === "error" || value === 2 ? "warn" : value,
-    ]),
+    Object.entries(rules).map(([name, value]) => [name, warningSeverity(value)]),
   );
 
 const recommendedAsWarnings = asWarnings(js.configs.recommended.rules);
