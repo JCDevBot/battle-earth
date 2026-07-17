@@ -31,7 +31,10 @@ export default function App() {
   const [stage, setStage] = useState(APP_STAGES.GLOBE);
   const [location, setLocation] = useState(null);
 
-  if (canRenderStage(APP_STAGES.CAMPAIGN, location) && stage === APP_STAGES.CAMPAIGN) {
+  if (
+    stage === APP_STAGES.CAMPAIGN &&
+    canRenderStage(APP_STAGES.CAMPAIGN, location)
+  ) {
     return (
       <Suspense fallback={<StageLoadingFallback />}>
         <CampaignStage
@@ -46,7 +49,10 @@ export default function App() {
     );
   }
 
-  if (canRenderStage(APP_STAGES.TACTICAL, location) && stage === APP_STAGES.TACTICAL) {
+  if (
+    stage === APP_STAGES.TACTICAL &&
+    canRenderStage(APP_STAGES.TACTICAL, location)
+  ) {
     return (
       <Suspense fallback={<StageLoadingFallback />}>
         <TacticalStage
