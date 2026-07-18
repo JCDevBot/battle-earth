@@ -1,4 +1,5 @@
 import { Component, lazy, Suspense, useState } from "react";
+import { createPrototypeSmokeLocation } from "./app/prototypeScenario.js";
 import {
   APP_STAGES,
   canRenderStage,
@@ -17,6 +18,13 @@ const TacticalStage = lazy(() =>
     default: module.TacticalStage,
   })),
 );
+
+function getInitialPrototypeLocation() {
+  if (typeof window === "undefined") return null;
+
+  const scenario = new URLSearchParams(window.location.search).get("scenario");
+  return scenario === "prototype-smoke" ? createPrototypeSmokeLocation() : null;
+}
 
 function StageLoadingFallback() {
   return (
@@ -66,8 +74,13 @@ class StageErrorBoundary extends Component {
 }
 
 export default function App() {
-  const [stage, setStage] = useState(APP_STAGES.GLOBE);
-  const [location, setLocation] = useState(null);
+  const [initialLocation] = useState(getInitialPrototypeLocation);
+  const [stage, setStage] = useState(() =>
+    initialLocation
+      ? getStageForLocation(initialLocation)
+      : APP_STAGES.GLOBE,
+  );
+  const [location, setLocation] = useState(initialLocation);
 
   const returnToGlobe = () => {
     setLocation(null);
