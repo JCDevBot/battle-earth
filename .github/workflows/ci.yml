@@ -23,9 +23,6 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Pin npm version
-        run: npm install --global npm@10.9.4
-
       - name: Report tool versions
         run: |
           node --version
