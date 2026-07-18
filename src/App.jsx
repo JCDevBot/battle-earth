@@ -76,9 +76,7 @@ class StageErrorBoundary extends Component {
 export default function App() {
   const [initialLocation] = useState(getInitialPrototypeLocation);
   const [stage, setStage] = useState(() =>
-    initialLocation
-      ? getStageForLocation(initialLocation)
-      : APP_STAGES.GLOBE,
+    initialLocation ? getStageForLocation(initialLocation) : APP_STAGES.GLOBE,
   );
   const [location, setLocation] = useState(initialLocation);
 
