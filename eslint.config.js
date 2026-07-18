@@ -17,7 +17,10 @@ const warningSeverity = (value) => {
 
 const asWarnings = (rules) =>
   Object.fromEntries(
-    Object.entries(rules).map(([name, value]) => [name, warningSeverity(value)]),
+    Object.entries(rules).map(([name, value]) => [
+      name,
+      warningSeverity(value),
+    ]),
   );
 
 const recommendedAsWarnings = asWarnings(js.configs.recommended.rules);
