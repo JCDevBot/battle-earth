@@ -18,6 +18,14 @@ describe("functional prototype flow contract", () => {
     expect(globe).toContain("battleRequest");
   });
 
+  it("provides a deterministic direct entry for browser smoke coverage", () => {
+    const app = source("src/App.jsx");
+
+    expect(app).toContain('get("scenario")');
+    expect(app).toContain('scenario === "prototype-smoke"');
+    expect(app).toContain("createPrototypeSmokeLocation()");
+  });
+
   it("keeps manual deployment and unit command controls available", () => {
     const tactical = source("src/components/TacticalStage.jsx");
 
