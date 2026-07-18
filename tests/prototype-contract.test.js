@@ -11,7 +11,8 @@ describe("functional prototype flow contract", () => {
     const globe = source("src/components/GlobePicker.jsx");
 
     expect(app).toContain("<GlobePicker");
-    expect(app).toContain("setStage(getStageForLocation(loc))");
+    expect(app).toContain("normalizeSelectedLocation(selectedLocation)");
+    expect(app).toContain("setStage(getStageForLocation(normalizedLocation))");
     expect(app).toContain("<TacticalStage");
     expect(globe).toContain("onSelect");
     expect(globe).toContain("battleRequest");
