@@ -12,6 +12,10 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
 
     steps:
       - name: Check out repository
@@ -20,7 +24,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: ${{ matrix.node-version }}
           registry-url: https://registry.npmjs.org
 
       - name: Report tool versions
@@ -62,7 +66,7 @@ jobs:
         if: failure() && steps.install.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
-          name: npm-ci-diagnostics
+          name: npm-ci-diagnostics-node-${{ matrix.node-version }}
           path: |
             npm-ci.log
             ~/.npm/_logs/*.log
@@ -78,7 +82,7 @@ jobs:
         if: failure() && steps.lint.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
-          name: lint-diagnostics
+          name: lint-diagnostics-node-${{ matrix.node-version }}
           path: lint-report.txt
           if-no-files-found: error
 
@@ -92,7 +96,7 @@ jobs:
         if: failure() && steps.test.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
-          name: test-diagnostics
+          name: test-diagnostics-node-${{ matrix.node-version }}
           path: test-report.txt
           if-no-files-found: error
 
@@ -106,7 +110,7 @@ jobs:
         if: failure() && steps.format.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
-          name: formatting-diagnostics
+          name: formatting-diagnostics-node-${{ matrix.node-version }}
           path: format-report.txt
           if-no-files-found: error
 
@@ -121,7 +125,7 @@ jobs:
         if: failure() && steps.build.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
-          name: build-diagnostics
+          name: build-diagnostics-node-${{ matrix.node-version }}
           path: build-report.txt
           if-no-files-found: error
 
@@ -148,7 +152,7 @@ jobs:
         if: failure() && steps.preview.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
-          name: preview-diagnostics
+          name: preview-diagnostics-node-${{ matrix.node-version }}
           path: |
             preview-report.txt
             preview-index.html
