@@ -21,14 +21,13 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-
-      - name: Pin npm
-        run: npm install --global npm@10.9.2
+          registry-url: https://registry.npmjs.org
 
       - name: Report tool versions
         run: |
           node --version
           npm --version
+          npm config get registry
 
       - name: Install dependencies
         id: install
@@ -37,9 +36,10 @@ jobs:
           npm_config_fund: "false"
           npm_config_fetch_retries: "5"
           npm_config_fetch_retry_maxtimeout: "120000"
+          npm_config_registry: https://registry.npmjs.org
         run: |
           set -o pipefail
-          npm ci --no-audit --no-fund 2>&1 | tee npm-ci.log
+          npm ci --no-audit --no-fund --registry=https://registry.npmjs.org 2>&1 | tee npm-ci.log
 
       - name: Upload install diagnostics
         if: failure() && steps.install.outcome == 'failure'
