@@ -32,8 +32,8 @@ describe("prototype smoke scenario", () => {
     first.battleRequest.sandbox.enabled = false;
 
     expect(second.battleRequest.sandbox.enabled).toBe(true);
-    expect(PROTOTYPE_SMOKE_SCENARIO.location.battleRequest.sandbox.enabled).toBe(
-      true,
-    );
+    expect(
+      PROTOTYPE_SMOKE_SCENARIO.location.battleRequest.sandbox.enabled,
+    ).toBe(true);
   });
 });
