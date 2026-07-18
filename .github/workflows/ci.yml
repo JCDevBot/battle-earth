@@ -29,6 +29,9 @@ jobs:
           npm --version
           npm config get registry
 
+      - name: Reset npm cache
+        run: npm cache clean --force
+
       - name: Install dependencies
         id: install
         env:
@@ -89,7 +92,7 @@ jobs:
         if: failure() && steps.format.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
-          name: format-diagnostics
+          name: formatting-diagnostics
           path: format-report.txt
           if-no-files-found: error
 
