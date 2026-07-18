@@ -29,6 +29,20 @@ jobs:
           npm --version
           npm config get registry
 
+      - name: Normalize lockfile registry URLs
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          lockfile = Path("package-lock.json")
+          content = lockfile.read_text()
+          internal_registry = "https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/"
+          public_registry = "https://registry.npmjs.org/"
+
+          if internal_registry in content:
+              lockfile.write_text(content.replace(internal_registry, public_registry))
+          PY
+
       - name: Reset npm cache
         run: npm cache clean --force
 
