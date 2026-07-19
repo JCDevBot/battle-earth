@@ -59,16 +59,6 @@ async function waitForButton(pattern) {
   return button;
 }
 
-async function selectStrategicEntity(name, headingName = name) {
-  const button = page.getByTitle(`Select ${name}`).first();
-  await button.waitFor({ state: "visible", timeout: 45_000 });
-  await button.click();
-  await page.getByRole("heading", { name: headingName, exact: true }).waitFor({
-    state: "visible",
-    timeout: 30_000,
-  });
-}
-
 async function enterTacticalFromGlobe() {
   await page.goto(`${baseUrl}/?scenario=prototype-globe-smoke`, {
     waitUntil: "domcontentloaded",
@@ -80,10 +70,19 @@ async function enterTacticalFromGlobe() {
     timeout: 45_000,
   });
 
-  await selectStrategicEntity("North America");
-  await selectStrategicEntity("United States", "United States of America");
-  await selectStrategicEntity("Minnesota");
-  await selectStrategicEntity("St. Paul");
+  const settings = await waitForButton(/^Settings$/i);
+  await settings.click();
+
+  const knownLocation = page
+    .getByRole("button", { name: /^St\. Paul \/ Harriet Island/i })
+    .first();
+  await knownLocation.waitFor({ state: "visible", timeout: 30_000 });
+  await knownLocation.click();
+
+  await page.getByRole("heading", { name: "St. Paul", exact: true }).waitFor({
+    state: "visible",
+    timeout: 30_000,
+  });
 
   const generateBattle = await waitForButton(/^Generate City Battle/i);
   await generateBattle.click();
