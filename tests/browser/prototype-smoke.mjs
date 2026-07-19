@@ -37,7 +37,11 @@ page.on("requestfailed", (request) => {
 
 await page.route("**/*", async (route) => {
   const url = route.request().url();
-  if (url.includes("overpass-api.de") || url.includes("overpass.kumi.systems") || url.includes("overpass.openstreetmap.ru")) {
+  if (
+    url.includes("overpass-api.de") ||
+    url.includes("overpass.kumi.systems") ||
+    url.includes("overpass.openstreetmap.ru")
+  ) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -55,11 +59,11 @@ async function waitForButton(pattern) {
   return button;
 }
 
-async function selectStrategicEntity(name) {
+async function selectStrategicEntity(name, headingName = name) {
   const button = page.getByTitle(`Select ${name}`).first();
   await button.waitFor({ state: "visible", timeout: 45_000 });
   await button.click();
-  await page.getByRole("heading", { name, exact: true }).waitFor({
+  await page.getByRole("heading", { name: headingName, exact: true }).waitFor({
     state: "visible",
     timeout: 30_000,
   });
@@ -77,7 +81,7 @@ async function enterTacticalFromGlobe() {
   });
 
   await selectStrategicEntity("North America");
-  await selectStrategicEntity("United States");
+  await selectStrategicEntity("United States", "United States of America");
   await selectStrategicEntity("Minnesota");
   await selectStrategicEntity("St. Paul");
 
