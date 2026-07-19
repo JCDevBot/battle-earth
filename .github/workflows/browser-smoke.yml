@@ -1,0 +1,84 @@
+name: Browser Smoke
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  prototype-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Normalize lockfile registry URLs
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          lockfile = Path("package-lock.json")
+          content = lockfile.read_text()
+          internal_registry = "https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/"
+          public_registry = "https://registry.npmjs.org/"
+
+          if internal_registry in content:
+              lockfile.write_text(content.replace(internal_registry, public_registry))
+          PY
+
+      - name: Install project dependencies
+        env:
+          npm_config_audit: "false"
+          npm_config_fund: "false"
+          npm_config_registry: https://registry.npmjs.org
+        run: npm ci --no-audit --no-fund --registry=https://registry.npmjs.org
+
+      - name: Install pinned browser harness
+        env:
+          npm_config_audit: "false"
+          npm_config_fund: "false"
+          npm_config_registry: https://registry.npmjs.org
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.1
+          npx playwright install --with-deps chromium
+
+      - name: Build production application
+        run: npm run build
+
+      - name: Run deterministic prototype smoke test
+        env:
+          BATTLE_EARTH_BASE_URL: http://127.0.0.1:4173
+          BROWSER_ARTIFACT_DIR: browser-artifacts
+        run: |
+          python3 -m http.server --bind 127.0.0.1 --directory "$PWD/dist" 4173 > browser-artifacts-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          node tests/browser/prototype-smoke.mjs
+
+      - name: Upload browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prototype-browser-smoke
+          path: |
+            browser-artifacts/
+            browser-artifacts-server.log
+          if-no-files-found: warn
+          retention-days: 14
