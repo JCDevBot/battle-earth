@@ -1,10 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
-const baseUrl =
-  process.env.BATTLE_EARTH_BASE_URL ?? "http://127.0.0.1:4173";
-const artifactDir =
-  process.env.BROWSER_ARTIFACT_DIR ?? "browser-artifacts";
+const baseUrl = process.env.BATTLE_EARTH_BASE_URL ?? "http://127.0.0.1:4173";
+const artifactDir = process.env.BROWSER_ARTIFACT_DIR ?? "browser-artifacts";
 const events = [];
 
 await mkdir(artifactDir, { recursive: true });
@@ -113,7 +111,9 @@ try {
 
   const pageErrors = events.filter((event) => event.type === "pageerror");
   if (pageErrors.length > 0) {
-    throw new Error(`Browser emitted ${pageErrors.length} page error event(s).`);
+    throw new Error(
+      `Browser emitted ${pageErrors.length} page error event(s).`,
+    );
   }
 
   await page.screenshot({
