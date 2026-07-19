@@ -35,10 +35,57 @@ page.on("requestfailed", (request) => {
   });
 });
 
+await page.route("**/*", async (route) => {
+  const url = route.request().url();
+  if (url.includes("overpass-api.de") || url.includes("overpass.kumi.systems") || url.includes("overpass.openstreetmap.ru")) {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ elements: [] }),
+    });
+    return;
+  }
+
+  await route.continue();
+});
+
 async function waitForButton(pattern) {
   const button = page.getByRole("button", { name: pattern }).first();
   await button.waitFor({ state: "visible", timeout: 30_000 });
   return button;
+}
+
+async function selectStrategicEntity(name) {
+  const button = page.getByTitle(`Select ${name}`).first();
+  await button.waitFor({ state: "visible", timeout: 45_000 });
+  await button.click();
+  await page.getByRole("heading", { name, exact: true }).waitFor({
+    state: "visible",
+    timeout: 30_000,
+  });
+}
+
+async function enterTacticalFromGlobe() {
+  await page.goto(`${baseUrl}/?scenario=prototype-globe-smoke`, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
+
+  await page.getByText("Campaign Lobby", { exact: true }).waitFor({
+    state: "visible",
+    timeout: 45_000,
+  });
+
+  await selectStrategicEntity("North America");
+  await selectStrategicEntity("United States");
+  await selectStrategicEntity("Minnesota");
+  await selectStrategicEntity("St. Paul");
+
+  const generateBattle = await waitForButton(/^Generate City Battle/i);
+  await generateBattle.click();
+
+  const deployAnyway = await waitForButton(/^Deploy anyway$/i);
+  await deployAnyway.click();
 }
 
 async function deployFriendlySquad(canvas) {
@@ -68,16 +115,13 @@ async function deployFriendlySquad(canvas) {
 }
 
 try {
-  await page.goto(`${baseUrl}/?scenario=prototype-smoke`, {
-    waitUntil: "domcontentloaded",
-    timeout: 30_000,
-  });
+  await enterTacticalFromGlobe();
 
   await page.getByText("Sandbox Mode", { exact: true }).waitFor({
     state: "visible",
     timeout: 45_000,
   });
-  await page.getByText("Saint Paul smoke test", { exact: true }).waitFor({
+  await page.getByText("St. Paul", { exact: true }).first().waitFor({
     state: "visible",
     timeout: 45_000,
   });
