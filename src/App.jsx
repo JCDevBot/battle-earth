@@ -19,11 +19,38 @@ const TacticalStage = lazy(() =>
   })),
 );
 
-function getInitialPrototypeLocation() {
+function getPrototypeScenario() {
   if (typeof window === "undefined") return null;
 
-  const scenario = new URLSearchParams(window.location.search).get("scenario");
+  return new URLSearchParams(window.location.search).get("scenario");
+}
+
+function getInitialPrototypeLocation(scenario) {
   return scenario === "prototype-smoke" ? createPrototypeSmokeLocation() : null;
+}
+
+function createGlobeSmokeLocation(selectedLocation) {
+  const normalizedLocation = normalizeSelectedLocation(selectedLocation);
+  if (!normalizedLocation) return null;
+
+  const smokeLocation = createPrototypeSmokeLocation();
+  return normalizeSelectedLocation({
+    ...normalizedLocation,
+    sizeMeters: smokeLocation.sizeMeters,
+    battleRequest: {
+      ...smokeLocation.battleRequest,
+      lat: normalizedLocation.lat,
+      lon: normalizedLocation.lon,
+      selectedName:
+        normalizedLocation.battleRequest?.selectedName ??
+        normalizedLocation.name ??
+        smokeLocation.battleRequest.selectedName,
+      region:
+        normalizedLocation.battleRequest?.region ??
+        normalizedLocation.region ??
+        smokeLocation.battleRequest.region,
+    },
+  });
 }
 
 function StageLoadingFallback() {
@@ -74,7 +101,10 @@ class StageErrorBoundary extends Component {
 }
 
 export default function App() {
-  const [initialLocation] = useState(getInitialPrototypeLocation);
+  const [prototypeScenario] = useState(getPrototypeScenario);
+  const [initialLocation] = useState(() =>
+    getInitialPrototypeLocation(prototypeScenario),
+  );
   const [stage, setStage] = useState(() =>
     initialLocation ? getStageForLocation(initialLocation) : APP_STAGES.GLOBE,
   );
@@ -86,7 +116,10 @@ export default function App() {
   };
 
   const launchLocation = (selectedLocation) => {
-    const normalizedLocation = normalizeSelectedLocation(selectedLocation);
+    const normalizedLocation =
+      prototypeScenario === "prototype-globe-smoke"
+        ? createGlobeSmokeLocation(selectedLocation)
+        : normalizeSelectedLocation(selectedLocation);
 
     if (!normalizedLocation) {
       returnToGlobe();
