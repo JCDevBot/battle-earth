@@ -88,8 +88,24 @@ function stableHash(text) {
   return (hash >>> 0).toString(36);
 }
 
+function canonicalize(value) {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (!value || typeof value !== "object") return value;
+
+  return Object.keys(value)
+    .sort()
+    .reduce((result, key) => {
+      result[key] = canonicalize(value[key]);
+      return result;
+    }, {});
+}
+
+function stableStringify(value) {
+  return JSON.stringify(canonicalize(value));
+}
+
 function identityPayload(session) {
-  return JSON.stringify({
+  return stableStringify({
     schema: session.schema,
     version: session.version,
     seed: session.seed,
@@ -183,10 +199,10 @@ export function createBattleSession(spec = {}) {
     },
   };
 
-  return {
-    ...session,
-    id: spec.id ?? `battle-session-${stableHash(identityPayload(session))}`,
-  };
+  const id = `battle-session-${stableHash(identityPayload(session))}`;
+  assert(spec.id == null || spec.id === id, "BattleSession id does not match normalized setup");
+
+  return { ...session, id };
 }
 
 export function serializeBattleSession(session) {
