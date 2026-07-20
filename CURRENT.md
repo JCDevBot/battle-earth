@@ -29,7 +29,7 @@ The existing draft pull request remains the integration branch. Do not merge wit
 
 ## Current task
 
-Define the stable `BattleSession` contract that connects:
+Complete issue #14, the stable [`BattleSession` domain contract](docs/BATTLE_SESSION.md), connecting:
 
 - geographic context
 - playable and rendered-context bounds
@@ -41,7 +41,7 @@ Define the stable `BattleSession` contract that connects:
 - tactical outcome
 - macro persistence
 
-The first implementation should remain small and domain-focused. It must serialize and restore deterministically without depending on React or Three.js.
+The implementation remains domain-focused, serializes and restores deterministically, and has no React or Three.js dependency. The task remains active until CI validates the contract and its unit tests.
 
 ## Ordered next work
 
