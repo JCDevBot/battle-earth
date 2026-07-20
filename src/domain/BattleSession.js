@@ -8,7 +8,20 @@ export const FIDELITY_CLASSES = Object.freeze({
   PROCEDURAL_FALLBACK: "procedural-fallback",
 });
 
+export const BATTLE_SESSION_PHASES = Object.freeze([
+  "setup",
+  "replica-ready",
+  "hq-placed",
+  "deployed",
+  "active",
+  "resolved",
+  "summarized",
+]);
+
 const FIDELITY_VALUES = new Set(Object.values(FIDELITY_CLASSES));
+const PHASE_INDEX = new Map(
+  BATTLE_SESSION_PHASES.map((phase, index) => [phase, index]),
+);
 
 function assert(condition, message) {
   if (!condition) throw new TypeError(message);
@@ -38,6 +51,14 @@ function normalizeBounds(bounds = {}, label) {
   return { minX, maxX, minZ, maxZ };
 }
 
+function normalizePoint(point, label) {
+  assert(point && typeof point === "object", `${label} must be an object`);
+  return {
+    x: finiteNumber(point.x, `${label}.x`),
+    z: finiteNumber(point.z, `${label}.z`),
+  };
+}
+
 function containsBounds(outer, inner) {
   return (
     outer.minX <= inner.minX &&
@@ -47,13 +68,34 @@ function containsBounds(outer, inner) {
   );
 }
 
+function containsPoint(bounds, point) {
+  return (
+    point.x >= bounds.minX &&
+    point.x <= bounds.maxX &&
+    point.z >= bounds.minZ &&
+    point.z <= bounds.maxZ
+  );
+}
+
 function normalizeProvenance(entries = []) {
   assert(Array.isArray(entries), "replica.provenance must be an array");
   return entries.map((entry, index) => {
-    assert(entry && typeof entry === "object", `provenance entry ${index} must be an object`);
-    assert(typeof entry.featureType === "string" && entry.featureType, `provenance entry ${index} requires featureType`);
-    assert(typeof entry.source === "string" && entry.source, `provenance entry ${index} requires source`);
-    assert(FIDELITY_VALUES.has(entry.fidelityClass), `provenance entry ${index} has an invalid fidelityClass`);
+    assert(
+      entry && typeof entry === "object",
+      `provenance entry ${index} must be an object`,
+    );
+    assert(
+      typeof entry.featureType === "string" && entry.featureType,
+      `provenance entry ${index} requires featureType`,
+    );
+    assert(
+      typeof entry.source === "string" && entry.source,
+      `provenance entry ${index} requires source`,
+    );
+    assert(
+      FIDELITY_VALUES.has(entry.fidelityClass),
+      `provenance entry ${index} has an invalid fidelityClass`,
+    );
     return {
       featureType: entry.featureType,
       source: entry.source,
@@ -77,6 +119,11 @@ function normalizeForcePackage(force = {}, label) {
       status: unit.status ?? "available",
     })),
   };
+}
+
+function normalizePhase(phase = "setup") {
+  assert(PHASE_INDEX.has(phase), `unsupported BattleSession phase: ${phase}`);
+  return phase;
 }
 
 function stableHash(text) {
@@ -113,19 +160,34 @@ function identityPayload(session) {
     playableBounds: session.playableBounds,
     renderedContextBounds: session.renderedContextBounds,
     playerProfile: session.playerProfile,
-    hqPlan: session.hqPlan,
+    hqAssetId: session.hqPlan.assetId,
     friendlyForce: session.friendlyForce,
     enemyForce: session.enemyForce,
-    objective: session.objective,
+    objective: {
+      id: session.objective.id,
+      type: session.objective.type,
+      name: session.objective.name,
+      position: session.objective.position,
+    },
     environment: session.environment,
   });
+}
+
+function totalForceStrength(force) {
+  return force.units.reduce((sum, unit) => sum + unit.strength, 0);
 }
 
 export function createBattleSession(spec = {}) {
   const schema = spec.schema ?? BATTLE_SESSION_SCHEMA;
   const version = Number(spec.version ?? BATTLE_SESSION_VERSION);
-  assert(schema === BATTLE_SESSION_SCHEMA, `unsupported BattleSession schema: ${schema}`);
-  assert(version === BATTLE_SESSION_VERSION, `unsupported BattleSession version: ${version}`);
+  assert(
+    schema === BATTLE_SESSION_SCHEMA,
+    `unsupported BattleSession schema: ${schema}`,
+  );
+  assert(
+    version === BATTLE_SESSION_VERSION,
+    `unsupported BattleSession version: ${version}`,
+  );
 
   const geographicContext = {
     id: spec.geographicContext?.id ?? "custom-location",
@@ -135,24 +197,59 @@ export function createBattleSession(spec = {}) {
       : [spec.geographicContext?.name ?? "Custom Location"],
     location: normalizeCoordinates(spec.geographicContext?.location),
   };
-  const playableBounds = normalizeBounds(spec.playableBounds, "playableBounds");
-  const renderedContextBounds = normalizeBounds(spec.renderedContextBounds, "renderedContextBounds");
+  const playableBounds = normalizeBounds(
+    spec.playableBounds,
+    "playableBounds",
+  );
+  const renderedContextBounds = normalizeBounds(
+    spec.renderedContextBounds,
+    "renderedContextBounds",
+  );
   assert(
     containsBounds(renderedContextBounds, playableBounds),
     "renderedContextBounds must contain playableBounds",
   );
 
+  const hqPlacement = spec.hqPlan?.placement
+    ? normalizePoint(spec.hqPlan.placement, "hqPlan.placement")
+    : null;
+  if (hqPlacement) {
+    assert(
+      containsPoint(renderedContextBounds, hqPlacement),
+      "hqPlan.placement must be inside renderedContextBounds",
+    );
+  }
+
+  const objectivePosition = spec.objective?.position
+    ? normalizePoint(spec.objective.position, "objective.position")
+    : null;
+  if (objectivePosition) {
+    assert(
+      containsPoint(playableBounds, objectivePosition),
+      "objective.position must be inside playableBounds",
+    );
+  }
+
+  const friendlyForce = normalizeForcePackage(
+    spec.friendlyForce,
+    "friendlyForce",
+  );
+  const enemyForce = normalizeForcePackage(spec.enemyForce, "enemyForce");
+
   const session = {
     schema,
     version,
     seed: Math.trunc(finiteNumber(spec.seed ?? 1, "seed")),
+    revision: Math.max(0, Math.trunc(Number(spec.revision) || 0)),
     geographicContext,
     playableBounds,
     renderedContextBounds,
     replica: {
       mode: spec.replica?.mode ?? "replica",
       provenance: normalizeProvenance(spec.replica?.provenance ?? []),
-      warnings: Array.isArray(spec.replica?.warnings) ? [...spec.replica.warnings] : [],
+      warnings: Array.isArray(spec.replica?.warnings)
+        ? [...spec.replica.warnings]
+        : [],
     },
     playerProfile: {
       id: spec.playerProfile?.id ?? "development-player",
@@ -162,27 +259,34 @@ export function createBattleSession(spec = {}) {
     },
     hqPlan: {
       status: spec.hqPlan?.status ?? "unplaced",
-      assetId: spec.hqPlan?.assetId ?? spec.playerProfile?.hqAssetId ?? "development-hq",
-      placement: spec.hqPlan?.placement ? { ...spec.hqPlan.placement } : null,
+      assetId:
+        spec.hqPlan?.assetId ??
+        spec.playerProfile?.hqAssetId ??
+        "development-hq",
+      placement: hqPlacement,
       entryRouteId: spec.hqPlan?.entryRouteId ?? null,
     },
-    friendlyForce: normalizeForcePackage(spec.friendlyForce, "friendlyForce"),
-    enemyForce: normalizeForcePackage(spec.enemyForce, "enemyForce"),
+    friendlyForce,
+    enemyForce,
     objective: {
       id: spec.objective?.id ?? "primary-objective",
       type: spec.objective?.type ?? "capture-and-hold",
       name: spec.objective?.name ?? "Primary Objective",
       status: spec.objective?.status ?? "pending",
-      position: spec.objective?.position ? { ...spec.objective.position } : null,
+      position: objectivePosition,
     },
     environment: {
       timeOfDay: spec.environment?.timeOfDay ?? "day",
       weather: spec.environment?.weather ?? "clear",
-      terrainSource: spec.environment?.terrainSource ?? "deterministic-fixture",
+      terrainSource:
+        spec.environment?.terrainSource ?? "deterministic-fixture",
     },
     battleState: {
-      phase: spec.battleState?.phase ?? "setup",
-      elapsedSeconds: Math.max(0, Number(spec.battleState?.elapsedSeconds) || 0),
+      phase: normalizePhase(spec.battleState?.phase),
+      elapsedSeconds: Math.max(
+        0,
+        Number(spec.battleState?.elapsedSeconds) || 0,
+      ),
     },
     outcome: spec.outcome
       ? {
@@ -193,24 +297,38 @@ export function createBattleSession(spec = {}) {
       : null,
     macroState: {
       status: spec.macroState?.status ?? "available",
-      remainingForceStrength: Number(spec.macroState?.remainingForceStrength ?? 0),
+      remainingForceStrength: Number(
+        spec.macroState?.remainingForceStrength ??
+          totalForceStrength(friendlyForce),
+      ),
       objectiveControl: spec.macroState?.objectiveControl ?? "neutral",
-      hqStatus: spec.macroState?.hqStatus ?? "unplaced",
+      hqStatus:
+        spec.macroState?.hqStatus ?? spec.hqPlan?.status ?? "unplaced",
     },
   };
 
   const id = `battle-session-${stableHash(identityPayload(session))}`;
-  assert(spec.id == null || spec.id === id, "BattleSession id does not match normalized setup");
+  assert(
+    spec.id == null || spec.id === id,
+    "BattleSession id does not match normalized setup",
+  );
 
   return { ...session, id };
 }
 
+export function validateBattleSession(session) {
+  return createBattleSession(session);
+}
+
 export function serializeBattleSession(session) {
-  return JSON.stringify(createBattleSession(session));
+  return stableStringify(createBattleSession(session));
 }
 
 export function restoreBattleSession(serialized) {
-  assert(typeof serialized === "string" && serialized, "serialized BattleSession must be a non-empty string");
+  assert(
+    typeof serialized === "string" && serialized,
+    "serialized BattleSession must be a non-empty string",
+  );
   let parsed;
   try {
     parsed = JSON.parse(serialized);
@@ -220,17 +338,122 @@ export function restoreBattleSession(serialized) {
   return createBattleSession(parsed);
 }
 
+export function transitionBattleSession(session, nextPhase) {
+  const current = createBattleSession(session);
+  const currentIndex = PHASE_INDEX.get(current.battleState.phase);
+  const nextIndex = PHASE_INDEX.get(nextPhase);
+  assert(nextIndex != null, `unsupported BattleSession phase: ${nextPhase}`);
+  assert(
+    nextIndex === currentIndex + 1,
+    `invalid BattleSession transition: ${current.battleState.phase} -> ${nextPhase}`,
+  );
+
+  return createBattleSession({
+    ...current,
+    revision: current.revision + 1,
+    battleState: { ...current.battleState, phase: nextPhase },
+  });
+}
+
+export function recordBattleOutcome(session, outcome = {}) {
+  const current = createBattleSession(session);
+  assert(
+    current.battleState.phase === "active",
+    "BattleSession outcome can only be recorded from the active phase",
+  );
+  assert(
+    typeof outcome.result === "string" && outcome.result,
+    "outcome.result is required",
+  );
+
+  const friendlyCasualties = Math.max(
+    0,
+    Math.trunc(Number(outcome.casualties?.friendly) || 0),
+  );
+  const initialStrength = totalForceStrength(current.friendlyForce);
+  const remainingForceStrength = Math.max(
+    0,
+    Math.trunc(
+      Number(outcome.remainingForceStrength) ||
+        initialStrength - friendlyCasualties,
+    ),
+  );
+
+  return createBattleSession({
+    ...current,
+    revision: current.revision + 1,
+    battleState: {
+      ...current.battleState,
+      phase: "resolved",
+      elapsedSeconds: Math.max(
+        current.battleState.elapsedSeconds,
+        Number(outcome.elapsedSeconds) || 0,
+      ),
+    },
+    objective: {
+      ...current.objective,
+      status: outcome.objectiveStatus ?? current.objective.status,
+    },
+    outcome: {
+      result: outcome.result,
+      casualties: { ...(outcome.casualties ?? {}) },
+      resourcesSpent: { ...(outcome.resourcesSpent ?? {}) },
+    },
+    macroState: {
+      status: "battle-resolved",
+      remainingForceStrength,
+      objectiveControl:
+        outcome.objectiveControl ?? current.macroState.objectiveControl,
+      hqStatus: outcome.hqStatus ?? current.hqPlan.status,
+    },
+  });
+}
+
+export function createBattleSessionMacroSummary(session) {
+  const current = createBattleSession(session);
+  return {
+    sessionId: current.id,
+    revision: current.revision,
+    location: {
+      id: current.geographicContext.id,
+      name: current.geographicContext.name,
+      hierarchy: [...current.geographicContext.hierarchy],
+      ...current.geographicContext.location,
+    },
+    phase: current.battleState.phase,
+    result: current.outcome?.result ?? "unresolved",
+    casualties: { ...(current.outcome?.casualties ?? {}) },
+    remainingForceStrength: current.macroState.remainingForceStrength,
+    resources: { ...current.playerProfile.resources },
+    resourcesSpent: { ...(current.outcome?.resourcesSpent ?? {}) },
+    objectiveControl: current.macroState.objectiveControl,
+    hqStatus: current.macroState.hqStatus,
+  };
+}
+
 export function createDevelopmentBattleSession() {
   return createBattleSession({
     seed: 1,
     geographicContext: {
       id: "st-paul-harriet-island",
       name: "St. Paul / Harriet Island",
-      hierarchy: ["Earth", "North America", "United States", "Minnesota", "St. Paul", "Harriet Island"],
+      hierarchy: [
+        "Earth",
+        "North America",
+        "United States",
+        "Minnesota",
+        "St. Paul",
+        "Harriet Island",
+      ],
       location: { lat: 44.9362, lon: -93.0977 },
     },
     playableBounds: { minX: -175, maxX: 175, minZ: -175, maxZ: 175 },
-    renderedContextBounds: { minX: -245, maxX: 245, minZ: -245, maxZ: 245 },
+    renderedContextBounds: {
+      minX: -245,
+      maxX: 245,
+      minZ: -245,
+      maxZ: 245,
+    },
     replica: {
       mode: "replica",
       provenance: [
