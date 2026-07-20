@@ -33,11 +33,38 @@ describe("BattleSession", () => {
     expect(serializeBattleSession(restored)).toBe(serialized);
   });
 
-  it("preserves deterministic identity for equivalent input", () => {
+  it("preserves deterministic identity for equivalent input regardless of object key order", () => {
     const base = createDevelopmentBattleSession();
-    const spec = { ...base, id: undefined };
+    const reordered = {
+      ...base,
+      id: undefined,
+      playerProfile: {
+        ...base.playerProfile,
+        resources: {
+          reinforcementPoints: base.playerProfile.resources.reinforcementPoints,
+          supply: base.playerProfile.resources.supply,
+        },
+        upgrades: {
+          medical: base.playerProfile.upgrades.medical,
+          command: base.playerProfile.upgrades.command,
+        },
+      },
+    };
 
-    expect(createBattleSession(spec).id).toBe(createBattleSession(spec).id);
+    expect(createBattleSession({ ...base, id: undefined }).id).toBe(
+      createBattleSession(reordered).id,
+    );
+  });
+
+  it("rejects a supplied identity that does not match normalized setup", () => {
+    const session = createDevelopmentBattleSession();
+
+    expect(() =>
+      createBattleSession({
+        ...session,
+        id: "battle-session-stale",
+      }),
+    ).toThrow("BattleSession id does not match normalized setup");
   });
 
   it("validates geographic coordinates", () => {
