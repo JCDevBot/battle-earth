@@ -19,7 +19,9 @@ describe("BattleSession", () => {
     expect(first.schema).toBe(BATTLE_SESSION_SCHEMA);
     expect(first.version).toBe(BATTLE_SESSION_VERSION);
     expect(first.friendlyForce.units).toHaveLength(2);
-    expect(first.renderedContextBounds.minX).toBeLessThan(first.playableBounds.minX);
+    expect(first.renderedContextBounds.minX).toBeLessThan(
+      first.playableBounds.minX,
+    );
   });
 
   it("serializes and restores without losing supported state", () => {
@@ -60,7 +62,12 @@ describe("BattleSession", () => {
       createBattleSession({
         ...session,
         id: undefined,
-        renderedContextBounds: { minX: -100, maxX: 100, minZ: -100, maxZ: 100 },
+        renderedContextBounds: {
+          minX: -100,
+          maxX: 100,
+          minZ: -100,
+          maxZ: 100,
+        },
       }),
     ).toThrow("renderedContextBounds must contain playableBounds");
   });
@@ -76,9 +83,9 @@ describe("BattleSession", () => {
   it("requires explicit provenance classes", () => {
     const session = createDevelopmentBattleSession();
 
-    expect(
-      session.replica.provenance[0].fidelityClass,
-    ).toBe(FIDELITY_CLASSES.SOURCE_EXACT);
+    expect(session.replica.provenance[0].fidelityClass).toBe(
+      FIDELITY_CLASSES.SOURCE_EXACT,
+    );
     expect(() =>
       createBattleSession({
         ...session,
