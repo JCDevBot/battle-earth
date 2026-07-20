@@ -20,43 +20,40 @@ The existing draft pull request remains the integration branch. Do not merge wit
 
 ## Current status
 
-- GitHub Actions CI passes on the established branch baseline.
+- GitHub Actions CI passes on the current branch.
 - Dependency installation, lint, deterministic tests, maintained-file formatting, production build, production-output smoke validation, and Chromium tactical smoke validation are established.
 - Stage routing validates and normalizes selected locations before entering campaign or tactical views.
 - Campaign and tactical stages are lazy-loaded and protected by a recoverable stage error boundary.
 - Deterministic tactical startup and globe-to-tactical browser coverage exist.
-- The Replica Neighborhood Battle charter defines the player journey, fidelity classes, source priority, inference rules, benchmark strategy, failure conditions, non-goals, ordered delivery plan, and measurable slice-level definition of done.
 - Issue #12, the vertical-slice charter and fidelity contract, is complete.
-- Duplicate BattleSession issue #14 is closed in favor of the more complete issue #13.
+- Issue #13, the deterministic [`BattleSession` domain contract](docs/BATTLE_SESSION.md), is complete and validated by CI and browser smoke tests.
+- Duplicate BattleSession issue #14 is closed in favor of issue #13.
 
 ## Current task
 
-Complete issue #13, the stable [`BattleSession` domain contract](docs/BATTLE_SESSION.md), connecting:
+Complete issue #11, the vertical-slice **Test Lab launcher**.
 
-- geographic context
-- playable and rendered-context bounds
-- replica-source and fidelity reporting
-- deterministic player-profile snapshot
-- HQ plan and validated staging position
-- friendly and enemy force packages
-- objective and environment state
-- ordered lifecycle transitions
-- tactical outcome recording
-- compact macro summary
+The launcher must:
 
-The implementation is domain-focused, serializes and restores deterministically, and has no React, Three.js, DOM, storage, or network dependency. The task remains active until CI validates the expanded spatial, lifecycle, outcome, and macro-summary tests.
+- provide a one-click benchmark battle entry
+- provide a one-click full globe-to-battle entry
+- generate entries from one centralized scenario registry
+- use normal `BattleSession`, stage-routing, tactical configuration, and persistence contracts
+- keep scenarios deterministic and URL-addressable
+- return direct launches to a defined prior stage or the Test Lab
+- remain hidden from normal player UI unless explicitly enabled
+- share scenario definitions with browser smoke tests
 
 ## Ordered next work
 
-1. Issue #13 — `BattleSession` contract and deterministic tests
-2. Issue #11 — vertical-slice Test Lab launcher
-3. Issue #10 — contextual overscan and playable-versus-rendered bounds
-4. Replica Mode provenance and fidelity reporting
-5. Miniature visual treatment that preserves source geometry
-6. HQ profile import and valid snap placement
-7. One deterministic capture-and-hold battle
-8. Macro/micro persistence round trip
-9. Automated, visual, performance, and human fidelity validation
+1. Issue #11 — vertical-slice Test Lab launcher
+2. Issue #10 — contextual overscan and playable-versus-rendered bounds
+3. Replica Mode provenance and fidelity reporting
+4. Miniature visual treatment that preserves source geometry
+5. HQ profile import and valid snap placement
+6. One deterministic capture-and-hold battle
+7. Macro/micro persistence round trip
+8. Automated, visual, performance, and human fidelity validation
 
 ## Human decisions required
 
