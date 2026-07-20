@@ -1,0 +1,257 @@
+export const BATTLE_SESSION_SCHEMA = "battle-earth/session";
+export const BATTLE_SESSION_VERSION = 1;
+
+export const FIDELITY_CLASSES = Object.freeze({
+  SOURCE_EXACT: "source-exact",
+  HIGH_CONFIDENCE_DERIVED: "high-confidence-derived",
+  LOW_CONFIDENCE_INFERRED: "low-confidence-inferred",
+  PROCEDURAL_FALLBACK: "procedural-fallback",
+});
+
+const FIDELITY_VALUES = new Set(Object.values(FIDELITY_CLASSES));
+
+function assert(condition, message) {
+  if (!condition) throw new TypeError(message);
+}
+
+function finiteNumber(value, label) {
+  const number = Number(value);
+  assert(Number.isFinite(number), `${label} must be a finite number`);
+  return number;
+}
+
+function normalizeCoordinates(location = {}) {
+  const lat = finiteNumber(location.lat, "geographicContext.location.lat");
+  const lon = finiteNumber(location.lon, "geographicContext.location.lon");
+  assert(lat >= -90 && lat <= 90, "latitude must be between -90 and 90");
+  assert(lon >= -180 && lon <= 180, "longitude must be between -180 and 180");
+  return { lat, lon };
+}
+
+function normalizeBounds(bounds = {}, label) {
+  const minX = finiteNumber(bounds.minX, `${label}.minX`);
+  const maxX = finiteNumber(bounds.maxX, `${label}.maxX`);
+  const minZ = finiteNumber(bounds.minZ, `${label}.minZ`);
+  const maxZ = finiteNumber(bounds.maxZ, `${label}.maxZ`);
+  assert(maxX > minX, `${label}.maxX must be greater than minX`);
+  assert(maxZ > minZ, `${label}.maxZ must be greater than minZ`);
+  return { minX, maxX, minZ, maxZ };
+}
+
+function containsBounds(outer, inner) {
+  return (
+    outer.minX <= inner.minX &&
+    outer.maxX >= inner.maxX &&
+    outer.minZ <= inner.minZ &&
+    outer.maxZ >= inner.maxZ
+  );
+}
+
+function normalizeProvenance(entries = []) {
+  assert(Array.isArray(entries), "replica.provenance must be an array");
+  return entries.map((entry, index) => {
+    assert(entry && typeof entry === "object", `provenance entry ${index} must be an object`);
+    assert(typeof entry.featureType === "string" && entry.featureType, `provenance entry ${index} requires featureType`);
+    assert(typeof entry.source === "string" && entry.source, `provenance entry ${index} requires source`);
+    assert(FIDELITY_VALUES.has(entry.fidelityClass), `provenance entry ${index} has an invalid fidelityClass`);
+    return {
+      featureType: entry.featureType,
+      source: entry.source,
+      fidelityClass: entry.fidelityClass,
+      count: Math.max(0, Math.trunc(Number(entry.count) || 0)),
+      note: entry.note ?? null,
+    };
+  });
+}
+
+function normalizeForcePackage(force = {}, label) {
+  assert(typeof force.id === "string" && force.id, `${label}.id is required`);
+  assert(Array.isArray(force.units), `${label}.units must be an array`);
+  return {
+    id: force.id,
+    name: force.name ?? force.id,
+    units: force.units.map((unit, index) => ({
+      id: unit.id ?? `${force.id}-unit-${index + 1}`,
+      type: unit.type ?? "infantry-squad",
+      strength: Math.max(0, Math.trunc(Number(unit.strength) || 0)),
+      status: unit.status ?? "available",
+    })),
+  };
+}
+
+function stableHash(text) {
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function identityPayload(session) {
+  return JSON.stringify({
+    schema: session.schema,
+    version: session.version,
+    seed: session.seed,
+    geographicContext: session.geographicContext,
+    playableBounds: session.playableBounds,
+    renderedContextBounds: session.renderedContextBounds,
+    playerProfile: session.playerProfile,
+    hqPlan: session.hqPlan,
+    friendlyForce: session.friendlyForce,
+    enemyForce: session.enemyForce,
+    objective: session.objective,
+    environment: session.environment,
+  });
+}
+
+export function createBattleSession(spec = {}) {
+  const schema = spec.schema ?? BATTLE_SESSION_SCHEMA;
+  const version = Number(spec.version ?? BATTLE_SESSION_VERSION);
+  assert(schema === BATTLE_SESSION_SCHEMA, `unsupported BattleSession schema: ${schema}`);
+  assert(version === BATTLE_SESSION_VERSION, `unsupported BattleSession version: ${version}`);
+
+  const geographicContext = {
+    id: spec.geographicContext?.id ?? "custom-location",
+    name: spec.geographicContext?.name ?? "Custom Location",
+    hierarchy: Array.isArray(spec.geographicContext?.hierarchy)
+      ? [...spec.geographicContext.hierarchy]
+      : [spec.geographicContext?.name ?? "Custom Location"],
+    location: normalizeCoordinates(spec.geographicContext?.location),
+  };
+  const playableBounds = normalizeBounds(spec.playableBounds, "playableBounds");
+  const renderedContextBounds = normalizeBounds(spec.renderedContextBounds, "renderedContextBounds");
+  assert(
+    containsBounds(renderedContextBounds, playableBounds),
+    "renderedContextBounds must contain playableBounds",
+  );
+
+  const session = {
+    schema,
+    version,
+    seed: Math.trunc(finiteNumber(spec.seed ?? 1, "seed")),
+    geographicContext,
+    playableBounds,
+    renderedContextBounds,
+    replica: {
+      mode: spec.replica?.mode ?? "replica",
+      provenance: normalizeProvenance(spec.replica?.provenance ?? []),
+      warnings: Array.isArray(spec.replica?.warnings) ? [...spec.replica.warnings] : [],
+    },
+    playerProfile: {
+      id: spec.playerProfile?.id ?? "development-player",
+      hqAssetId: spec.playerProfile?.hqAssetId ?? "development-hq",
+      resources: { ...(spec.playerProfile?.resources ?? {}) },
+      upgrades: { ...(spec.playerProfile?.upgrades ?? {}) },
+    },
+    hqPlan: {
+      status: spec.hqPlan?.status ?? "unplaced",
+      assetId: spec.hqPlan?.assetId ?? spec.playerProfile?.hqAssetId ?? "development-hq",
+      placement: spec.hqPlan?.placement ? { ...spec.hqPlan.placement } : null,
+      entryRouteId: spec.hqPlan?.entryRouteId ?? null,
+    },
+    friendlyForce: normalizeForcePackage(spec.friendlyForce, "friendlyForce"),
+    enemyForce: normalizeForcePackage(spec.enemyForce, "enemyForce"),
+    objective: {
+      id: spec.objective?.id ?? "primary-objective",
+      type: spec.objective?.type ?? "capture-and-hold",
+      name: spec.objective?.name ?? "Primary Objective",
+      status: spec.objective?.status ?? "pending",
+      position: spec.objective?.position ? { ...spec.objective.position } : null,
+    },
+    environment: {
+      timeOfDay: spec.environment?.timeOfDay ?? "day",
+      weather: spec.environment?.weather ?? "clear",
+      terrainSource: spec.environment?.terrainSource ?? "deterministic-fixture",
+    },
+    battleState: {
+      phase: spec.battleState?.phase ?? "setup",
+      elapsedSeconds: Math.max(0, Number(spec.battleState?.elapsedSeconds) || 0),
+    },
+    outcome: spec.outcome
+      ? {
+          result: spec.outcome.result ?? "unresolved",
+          casualties: { ...(spec.outcome.casualties ?? {}) },
+          resourcesSpent: { ...(spec.outcome.resourcesSpent ?? {}) },
+        }
+      : null,
+    macroState: {
+      status: spec.macroState?.status ?? "available",
+      remainingForceStrength: Number(spec.macroState?.remainingForceStrength ?? 0),
+      objectiveControl: spec.macroState?.objectiveControl ?? "neutral",
+      hqStatus: spec.macroState?.hqStatus ?? "unplaced",
+    },
+  };
+
+  return {
+    ...session,
+    id: spec.id ?? `battle-session-${stableHash(identityPayload(session))}`,
+  };
+}
+
+export function serializeBattleSession(session) {
+  return JSON.stringify(createBattleSession(session));
+}
+
+export function restoreBattleSession(serialized) {
+  assert(typeof serialized === "string" && serialized, "serialized BattleSession must be a non-empty string");
+  let parsed;
+  try {
+    parsed = JSON.parse(serialized);
+  } catch {
+    throw new TypeError("serialized BattleSession must contain valid JSON");
+  }
+  return createBattleSession(parsed);
+}
+
+export function createDevelopmentBattleSession() {
+  return createBattleSession({
+    seed: 1,
+    geographicContext: {
+      id: "st-paul-harriet-island",
+      name: "St. Paul / Harriet Island",
+      hierarchy: ["Earth", "North America", "United States", "Minnesota", "St. Paul", "Harriet Island"],
+      location: { lat: 44.9362, lon: -93.0977 },
+    },
+    playableBounds: { minX: -175, maxX: 175, minZ: -175, maxZ: 175 },
+    renderedContextBounds: { minX: -245, maxX: 245, minZ: -245, maxZ: 245 },
+    replica: {
+      mode: "replica",
+      provenance: [
+        {
+          featureType: "buildings",
+          source: "deterministic-osm-fixture",
+          fidelityClass: FIDELITY_CLASSES.SOURCE_EXACT,
+          count: 0,
+        },
+      ],
+    },
+    playerProfile: {
+      id: "vertical-slice-development-profile",
+      hqAssetId: "development-hq-v1",
+      resources: { supply: 100, reinforcementPoints: 2 },
+      upgrades: { command: 1, medical: 1 },
+    },
+    hqPlan: { status: "unplaced", assetId: "development-hq-v1" },
+    friendlyForce: {
+      id: "player-force",
+      name: "Player Platoon",
+      units: [
+        { id: "friendly-1", type: "infantry-squad", strength: 9 },
+        { id: "friendly-2", type: "infantry-squad", strength: 9 },
+      ],
+    },
+    enemyForce: {
+      id: "enemy-force",
+      name: "Opposing Force",
+      units: [{ id: "enemy-1", type: "infantry-squad", strength: 8 }],
+    },
+    objective: {
+      id: "harriet-primary",
+      type: "capture-and-hold",
+      name: "Secure the primary objective",
+      status: "pending",
+      position: { x: 0, z: 0 },
+    },
+  });
+}
