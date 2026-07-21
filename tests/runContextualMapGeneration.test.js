@@ -133,7 +133,10 @@ describe("contextual MapEngine orchestration", () => {
       vegetationSource: "osmOnly",
     });
 
-    expect(engine.callbacks.onLoadingChange.mock.calls).toEqual([[true], [false]]);
+    expect(engine.callbacks.onLoadingChange.mock.calls).toEqual([
+      [true],
+      [false],
+    ]);
     expect(engine.callbacks.onGenerationStats).toHaveBeenCalledWith(
       expect.objectContaining({
         buildings: 3,
