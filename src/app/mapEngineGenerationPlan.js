@@ -22,6 +22,12 @@ export function createMapEngineGenerationPlan(config = {}) {
     mapWidthMeters: gameplay.mapWidthMeters,
     mapDepthMeters: gameplay.mapDepthMeters,
   });
+  const playableAreaSquareMeters =
+    gameplay.mapWidthMeters * gameplay.mapDepthMeters;
+  const renderedAreaSquareMeters =
+    render.mapWidthMeters * render.mapDepthMeters;
+  const renderedAreaMultiplier =
+    renderedAreaSquareMeters / playableAreaSquareMeters;
 
   return Object.freeze({
     contextual,
@@ -58,10 +64,12 @@ export function createMapEngineGenerationPlan(config = {}) {
     camera: gameplayDimensions,
     diagnostics: Object.freeze({
       ...diagnostics,
-      playableAreaSquareMeters:
-        gameplay.mapWidthMeters * gameplay.mapDepthMeters,
-      renderedAreaSquareMeters:
-        render.mapWidthMeters * render.mapDepthMeters,
+      bufferMetersX: diagnostics.bufferXMeters,
+      bufferMetersZ: diagnostics.bufferZMeters,
+      playableAreaSquareMeters,
+      renderedAreaSquareMeters,
+      renderedAreaMultiplier,
+      renderedAreaIncreasePercent: (renderedAreaMultiplier - 1) * 100,
     }),
   });
 }
