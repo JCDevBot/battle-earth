@@ -32,16 +32,16 @@ describe("contextual bounds planning", () => {
     });
   });
 
-  it("uses the minimum context buffer for a small test slice", () => {
+  it("uses the minimum context buffer when the ratio would be smaller", () => {
     const plan = createContextualBoundsPlan({
-      playableWidthMeters: 350,
-      playableDepthMeters: 350,
+      playableWidthMeters: 300,
+      playableDepthMeters: 300,
     });
 
     expect(plan.bufferXMeters).toBe(DEFAULT_CONTEXT_BUFFER_MIN_METERS);
     expect(plan.bufferZMeters).toBe(DEFAULT_CONTEXT_BUFFER_MIN_METERS);
-    expect(plan.renderedWidthMeters).toBe(470);
-    expect(plan.renderedDepthMeters).toBe(470);
+    expect(plan.renderedWidthMeters).toBe(420);
+    expect(plan.renderedDepthMeters).toBe(420);
   });
 
   it("caps context growth on large tactical maps", () => {
