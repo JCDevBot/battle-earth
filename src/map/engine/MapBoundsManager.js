@@ -13,13 +13,15 @@ export class MapBoundsManager {
     this.enabled = true;
     this.cameraClampEnabled = true;
     this.visualsVisible = true;
+    this.outerSkirtVisible = true;
   }
 
-  build(sizeMeters, getGroundHeight = () => 0) {
+  build(sizeMeters, getGroundHeight = () => 0, options = {}) {
     this.clearVisuals();
     this.sizeMeters = Number(sizeMeters) || 1000;
     this.half = this.sizeMeters * 0.5;
     this.getGroundHeight = getGroundHeight;
+    this.outerSkirtVisible = options.showOuterSkirt !== false;
 
     const y = Math.max(0.25, getGroundHeight(0, 0) + 0.35);
     const borderPoints = [
@@ -27,36 +29,67 @@ export class MapBoundsManager {
       new THREE.Vector3(this.half, y, -this.half),
       new THREE.Vector3(this.half, y, this.half),
       new THREE.Vector3(-this.half, y, this.half),
-      new THREE.Vector3(-this.half, y, -this.half)
+      new THREE.Vector3(-this.half, y, -this.half),
     ];
     const borderGeometry = new THREE.BufferGeometry().setFromPoints(borderPoints);
-    const borderMaterial = new THREE.LineBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.85 });
+    const borderMaterial = new THREE.LineBasicMaterial({
+      color: 0xf97316,
+      transparent: true,
+      opacity: 0.85,
+    });
     const border = new THREE.Line(borderGeometry, borderMaterial);
     border.name = "playable-boundary-line";
     this.group.add(border);
 
-    const outer = this.sizeMeters * 3.0;
-    const stripMaterial = new THREE.MeshBasicMaterial({
-      color: 0x334155,
-      transparent: false,
-      depthWrite: true,
-      side: THREE.DoubleSide
-    });
+    if (this.outerSkirtVisible) {
+      const outer = this.sizeMeters * 3.0;
+      const stripMaterial = new THREE.MeshBasicMaterial({
+        color: 0x334155,
+        transparent: false,
+        depthWrite: true,
+        side: THREE.DoubleSide,
+      });
 
-    const strips = [
-      { x: 0, z: -this.half - (outer - this.sizeMeters) * 0.25, w: outer, h: (outer - this.sizeMeters) * 0.5 },
-      { x: 0, z: this.half + (outer - this.sizeMeters) * 0.25, w: outer, h: (outer - this.sizeMeters) * 0.5 },
-      { x: -this.half - (outer - this.sizeMeters) * 0.25, z: 0, w: (outer - this.sizeMeters) * 0.5, h: this.sizeMeters },
-      { x: this.half + (outer - this.sizeMeters) * 0.25, z: 0, w: (outer - this.sizeMeters) * 0.5, h: this.sizeMeters }
-    ];
+      const strips = [
+        {
+          x: 0,
+          z: -this.half - (outer - this.sizeMeters) * 0.25,
+          w: outer,
+          h: (outer - this.sizeMeters) * 0.5,
+        },
+        {
+          x: 0,
+          z: this.half + (outer - this.sizeMeters) * 0.25,
+          w: outer,
+          h: (outer - this.sizeMeters) * 0.5,
+        },
+        {
+          x: -this.half - (outer - this.sizeMeters) * 0.25,
+          z: 0,
+          w: (outer - this.sizeMeters) * 0.5,
+          h: this.sizeMeters,
+        },
+        {
+          x: this.half + (outer - this.sizeMeters) * 0.25,
+          z: 0,
+          w: (outer - this.sizeMeters) * 0.5,
+          h: this.sizeMeters,
+        },
+      ];
 
-    for (const strip of strips) {
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(strip.w, strip.h), stripMaterial.clone());
-      mesh.rotateX(-Math.PI / 2);
-      mesh.position.set(strip.x, y - 0.08, strip.z);
-      mesh.renderOrder = -5;
-      mesh.name = "out-of-bounds-ground-skirt";
-      this.group.add(mesh);
+      for (const strip of strips) {
+        const mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(strip.w, strip.h),
+          stripMaterial.clone(),
+        );
+        mesh.rotateX(-Math.PI / 2);
+        mesh.position.set(strip.x, y - 0.08, strip.z);
+        mesh.renderOrder = -5;
+        mesh.name = "out-of-bounds-ground-skirt";
+        this.group.add(mesh);
+      }
+
+      stripMaterial.dispose();
     }
 
     this.group.visible = this.visualsVisible;
@@ -66,7 +99,12 @@ export class MapBoundsManager {
   containsPoint(point, margin = 0) {
     if (!this.enabled || !point || !this.half) return true;
     const limit = this.half - margin;
-    return point.x >= -limit && point.x <= limit && point.z >= -limit && point.z <= limit;
+    return (
+      point.x >= -limit &&
+      point.x <= limit &&
+      point.z >= -limit &&
+      point.z <= limit
+    );
   }
 
   clampPoint(point, margin = 0) {
@@ -92,8 +130,11 @@ export class MapBoundsManager {
     while (this.group.children.length) {
       const child = this.group.children.pop();
       child.geometry?.dispose?.();
-      if (Array.isArray(child.material)) child.material.forEach((mat) => mat.dispose?.());
-      else child.material?.dispose?.();
+      if (Array.isArray(child.material)) {
+        child.material.forEach((material) => material.dispose?.());
+      } else {
+        child.material?.dispose?.();
+      }
     }
   }
 
@@ -107,7 +148,8 @@ export class MapBoundsManager {
       sizeMeters: this.sizeMeters,
       half: this.half,
       visible: this.visualsVisible,
-      cameraClampEnabled: this.cameraClampEnabled
+      outerSkirtVisible: this.outerSkirtVisible,
+      cameraClampEnabled: this.cameraClampEnabled,
     };
   }
 
