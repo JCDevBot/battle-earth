@@ -179,6 +179,30 @@ try {
   const canvas = page.locator("canvas").first();
   await canvas.waitFor({ state: "visible", timeout: 45_000 });
 
+  const contextual = await canvas.evaluate((element) => ({
+    status: element.dataset.contextualGeneration,
+    playableWidth: Number(element.dataset.playableWidthMeters),
+    playableDepth: Number(element.dataset.playableDepthMeters),
+    renderWidth: Number(element.dataset.renderWidthMeters),
+    renderDepth: Number(element.dataset.renderDepthMeters),
+    outerSkirtVisible: element.dataset.outerSkirtVisible,
+  }));
+
+  if (contextual.status !== "ready") {
+    throw new Error("Contextual generation diagnostics were not exposed.");
+  }
+  if (
+    !(contextual.renderWidth > contextual.playableWidth) ||
+    !(contextual.renderDepth > contextual.playableDepth)
+  ) {
+    throw new Error(
+      `Rendered context did not exceed playable bounds: ${JSON.stringify(contextual)}`,
+    );
+  }
+  if (contextual.outerSkirtVisible !== "false") {
+    throw new Error("The legacy flat outer skirt remained enabled.");
+  }
+
   const friendlyUnit = await deployFriendlySquad(canvas);
   await friendlyUnit.click();
 
