@@ -43,8 +43,8 @@ export function createContextualGenerationConfig(config = {}) {
     }),
     diagnostics: Object.freeze({
       contextEnabled: true,
-      widthBufferMeters: plan.widthBufferMeters,
-      depthBufferMeters: plan.depthBufferMeters,
+      bufferXMeters: plan.bufferXMeters,
+      bufferZMeters: plan.bufferZMeters,
       renderedAreaRatio:
         (plan.renderedWidthMeters * plan.renderedDepthMeters) /
         (plan.playableWidthMeters * plan.playableDepthMeters),
