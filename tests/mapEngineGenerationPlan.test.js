@@ -2,36 +2,49 @@ import { describe, expect, it } from "vitest";
 import { createMapEngineGenerationPlan } from "../src/app/mapEngineGenerationPlan.js";
 
 describe("MapEngine contextual generation plan", () => {
-  it("routes buffered dimensions only to source and visual systems", () => {
+  it("routes buffered dimensions to every source and visual system", () => {
     const plan = createMapEngineGenerationPlan({
       lat: 44.9362,
       lon: -93.0977,
       mapWidthMeters: 800,
       mapDepthMeters: 1200,
       osmProfile: "broadBase",
+      seed: 7,
       contextBufferRatio: 0.18,
       contextMinBufferMeters: 60,
       contextMaxBufferMeters: 250,
     });
 
+    const renderDimensions = {
+      sizeMeters: 1632,
+      mapWidthMeters: 1088,
+      mapDepthMeters: 1632,
+    };
+
     expect(plan.sourceQuery.profileName).toBe("broadBase");
     expect(plan.sourceQuery.bounds).toEqual(
       plan.contextual.render.sourceQueryBounds,
     );
-    expect(plan.terrain).toEqual({
+    expect(plan.terrain).toEqual(renderDimensions);
+    expect(plan.terrainLod).toEqual(renderDimensions);
+    expect(plan.proceduralFallback).toEqual({
+      lat: 44.9362,
+      lon: -93.0977,
       sizeMeters: 1632,
-      mapWidthMeters: 1088,
-      mapDepthMeters: 1632,
+      seed: 7,
+    });
+    expect(plan.canopy).toEqual({
+      lat: 44.9362,
+      lon: -93.0977,
+      sizeMeters: 1632,
     });
     expect(plan.visualFeatures).toEqual({
-      sizeMeters: 1632,
-      mapWidthMeters: 1088,
-      mapDepthMeters: 1632,
+      ...renderDimensions,
       canopySizeMeters: 1632,
     });
   });
 
-  it("keeps every tactical and camera domain on playable dimensions", () => {
+  it("keeps every tactical, objective, and camera domain on playable dimensions", () => {
     const plan = createMapEngineGenerationPlan({
       lat: 44.9362,
       lon: -93.0977,
@@ -39,10 +52,15 @@ describe("MapEngine contextual generation plan", () => {
       mapDepthMeters: 1200,
     });
 
-    expect(plan.gameplay).toEqual({
+    const gameplayDimensions = {
       sizeMeters: 1200,
       mapWidthMeters: 800,
       mapDepthMeters: 1200,
+    };
+
+    expect(plan.strategicPois).toEqual(gameplayDimensions);
+    expect(plan.gameplay).toEqual({
+      ...gameplayDimensions,
       bounds: {
         minX: -400,
         maxX: 400,
@@ -50,11 +68,7 @@ describe("MapEngine contextual generation plan", () => {
         maxZ: 600,
       },
     });
-    expect(plan.camera).toEqual({
-      sizeMeters: 1200,
-      mapWidthMeters: 800,
-      mapDepthMeters: 1200,
-    });
+    expect(plan.camera).toEqual(gameplayDimensions);
     expect(plan.boundsManager).toEqual({
       sizeMeters: 1200,
       showOuterSkirt: false,
@@ -77,5 +91,7 @@ describe("MapEngine contextual generation plan", () => {
     expect(Object.isFrozen(plan)).toBe(true);
     expect(Object.isFrozen(plan.gameplay)).toBe(true);
     expect(Object.isFrozen(plan.visualFeatures)).toBe(true);
+    expect(Object.isFrozen(plan.proceduralFallback)).toBe(true);
+    expect(Object.isFrozen(plan.strategicPois)).toBe(true);
   });
 });
