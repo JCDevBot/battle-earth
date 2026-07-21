@@ -1,3 +1,4 @@
+import { applyContextualCameraFrame } from "./contextualCameraFraming.js";
 import { runContextualMapGeneration } from "./runContextualMapGeneration.js";
 
 const INSTALL_MARKER = Symbol.for(
@@ -53,6 +54,7 @@ export function installContextualMapEngineGeneration(
 
   prototype.generateMap = async function generateContextualMap(config) {
     const result = await runner(this, config);
+    applyContextualCameraFrame(this, result?.plan);
     exposeContextualPlan(this, result);
     return result;
   };
