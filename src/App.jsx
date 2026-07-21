@@ -22,11 +22,16 @@ const CampaignStage = lazy(() =>
     default: module.CampaignStage,
   })),
 );
-const TacticalStage = lazy(() =>
-  import("./components/TacticalStage").then((module) => ({
-    default: module.TacticalStage,
-  })),
-);
+const TacticalStage = lazy(async () => {
+  const [{ MapEngine }, { installContextualMapEngineGeneration }] =
+    await Promise.all([
+      import("./map/engine/MapEngine"),
+      import("./app/contextualMapEngineIntegration.js"),
+    ]);
+  installContextualMapEngineGeneration(MapEngine);
+  const module = await import("./components/TacticalStage");
+  return { default: module.TacticalStage };
+});
 
 function runtimeSearch() {
   return typeof window === "undefined" ? "" : window.location.search;
