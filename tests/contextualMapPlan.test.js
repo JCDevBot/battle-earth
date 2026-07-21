@@ -38,7 +38,9 @@ describe("contextual map generation plan", () => {
       mapDepthMeters: 350,
     };
 
-    expect(createContextualMapPlan(input)).toEqual(createContextualMapPlan(input));
+    expect(createContextualMapPlan(input)).toEqual(
+      createContextualMapPlan(input),
+    );
   });
 
   it("rejects invalid geographic centers", () => {
