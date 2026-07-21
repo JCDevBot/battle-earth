@@ -18,12 +18,14 @@ describe("functional prototype flow contract", () => {
     expect(globe).toContain("battleRequest");
   });
 
-  it("provides a deterministic direct entry for browser smoke coverage", () => {
+  it("provides deterministic direct entry through the centralized scenario registry", () => {
     const app = source("src/App.jsx");
+    const registry = source("src/app/scenarioRegistry.js");
 
-    expect(app).toContain('get("scenario")');
-    expect(app).toContain('scenario === "prototype-smoke"');
-    expect(app).toContain("createPrototypeSmokeLocation()");
+    expect(app).toContain("readScenarioId(runtimeSearch())");
+    expect(app).toContain("createScenarioLocation(scenarioId)");
+    expect(registry).toContain('PROTOTYPE_SMOKE: "prototype-smoke"');
+    expect(registry).toContain("createPrototypeSmokeLocation()");
   });
 
   it("keeps manual deployment and unit command controls available", () => {
