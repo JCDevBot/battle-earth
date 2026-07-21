@@ -223,7 +223,7 @@ export default function App() {
   }
 
   return (
-    <div className="relative">
+    <>
       <GlobePicker onSelect={launchLocation} />
       {testLabEnabled ? (
         <button
@@ -237,6 +237,6 @@ export default function App() {
           Test Lab
         </button>
       ) : null}
-    </div>
+    </>
   );
 }
