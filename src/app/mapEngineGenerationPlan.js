@@ -12,38 +12,50 @@ export function createMapEngineGenerationPlan(config = {}) {
   const contextual = createContextualGenerationConfig(config);
   const { render, gameplay, diagnostics } = contextual;
 
+  const renderDimensions = Object.freeze({
+    sizeMeters: render.sizeMeters,
+    mapWidthMeters: render.mapWidthMeters,
+    mapDepthMeters: render.mapDepthMeters,
+  });
+  const gameplayDimensions = Object.freeze({
+    sizeMeters: gameplay.sizeMeters,
+    mapWidthMeters: gameplay.mapWidthMeters,
+    mapDepthMeters: gameplay.mapDepthMeters,
+  });
+
   return Object.freeze({
     contextual,
     sourceQuery: Object.freeze({
       bounds: render.sourceQueryBounds,
       profileName: config.osmProfile,
     }),
-    terrain: Object.freeze({
+    terrain: renderDimensions,
+    terrainLod: renderDimensions,
+    proceduralFallback: Object.freeze({
+      lat: config.lat,
+      lon: config.lon,
       sizeMeters: render.sizeMeters,
-      mapWidthMeters: render.mapWidthMeters,
-      mapDepthMeters: render.mapDepthMeters,
+      seed: config.seed,
+    }),
+    canopy: Object.freeze({
+      lat: config.lat,
+      lon: config.lon,
+      sizeMeters: render.canopySizeMeters,
     }),
     visualFeatures: Object.freeze({
-      sizeMeters: render.sizeMeters,
-      mapWidthMeters: render.mapWidthMeters,
-      mapDepthMeters: render.mapDepthMeters,
+      ...renderDimensions,
       canopySizeMeters: render.canopySizeMeters,
     }),
+    strategicPois: gameplayDimensions,
     gameplay: Object.freeze({
-      sizeMeters: gameplay.sizeMeters,
-      mapWidthMeters: gameplay.mapWidthMeters,
-      mapDepthMeters: gameplay.mapDepthMeters,
+      ...gameplayDimensions,
       bounds: gameplay.bounds,
     }),
     boundsManager: Object.freeze({
       sizeMeters: gameplay.sizeMeters,
       showOuterSkirt: render.showOuterSkirt,
     }),
-    camera: Object.freeze({
-      sizeMeters: gameplay.sizeMeters,
-      mapWidthMeters: gameplay.mapWidthMeters,
-      mapDepthMeters: gameplay.mapDepthMeters,
-    }),
+    camera: gameplayDimensions,
     diagnostics: Object.freeze({
       ...diagnostics,
       playableAreaSquareMeters:
