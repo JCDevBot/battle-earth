@@ -166,7 +166,7 @@ describe("contextual MapEngine orchestration", () => {
     expect(engine.canopy.fetchCanopyGrid).toHaveBeenCalledWith({
       lat: 44.9362,
       lon: -93.0977,
-      sizeMeters: 1536,
+      sizeMeters: 1632,
     });
   });
 });
