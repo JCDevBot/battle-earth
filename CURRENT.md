@@ -28,32 +28,32 @@ The existing draft pull request remains the integration branch. Do not merge wit
 - Issue #12, the vertical-slice charter and fidelity contract, is complete.
 - Issue #13, the deterministic [`BattleSession` domain contract](docs/BATTLE_SESSION.md), is complete and validated by CI and browser smoke tests.
 - Duplicate BattleSession issue #14 is closed in favor of issue #13.
+- Issue #11, the vertical-slice Test Lab launcher, is complete. Development builds and `?dev=1` expose centralized full-flow and direct-battle entries using normal scenario, routing, and BattleSession contracts.
+- Browser smoke validation exercises both Test Lab entries before running the complete deterministic globe-to-tactical command flow.
 
 ## Current task
 
-Complete issue #11, the vertical-slice **Test Lab launcher**.
+Complete issue #10, **contextual overscan and playable-versus-rendered bounds**.
 
-The launcher must:
+This task must:
 
-- provide a one-click benchmark battle entry
-- provide a one-click full globe-to-battle entry
-- generate entries from one centralized scenario registry
-- use normal `BattleSession`, stage-routing, tactical configuration, and persistence contracts
-- keep scenarios deterministic and URL-addressable
-- return direct launches to a defined prior stage or the Test Lab
-- remain hidden from normal player UI unless explicitly enabled
-- share scenario definitions with browser smoke tests
+- preserve the current playable bounds for deployment, commands, navigation, fog, territory, objectives, and camera constraints
+- generate and render a larger geographic context around the playable battlefield
+- continue terrain, roads, buildings, water, and vegetation through the playable boundary
+- keep the context ring non-playable and free of additional objectives or battle-state effects
+- remove or replace the visible flat out-of-bounds skirt
+- measure generation-time and memory impact
+- add deterministic bounds tests and visual/browser validation
 
 ## Ordered next work
 
-1. Issue #11 — vertical-slice Test Lab launcher
-2. Issue #10 — contextual overscan and playable-versus-rendered bounds
-3. Replica Mode provenance and fidelity reporting
-4. Miniature visual treatment that preserves source geometry
-5. HQ profile import and valid snap placement
-6. One deterministic capture-and-hold battle
-7. Macro/micro persistence round trip
-8. Automated, visual, performance, and human fidelity validation
+1. Issue #10 — contextual overscan and playable-versus-rendered bounds
+2. Replica Mode provenance and fidelity reporting
+3. Miniature visual treatment that preserves source geometry
+4. HQ profile import and valid snap placement
+5. One deterministic capture-and-hold battle
+6. Macro/micro persistence round trip
+7. Automated, visual, performance, and human fidelity validation
 
 ## Human decisions required
 
