@@ -1,3 +1,5 @@
+import { createContextualBoundsPlan } from "./contextualBounds.js";
+
 export function createInitialTacticalConfig({
   lat,
   lon,
@@ -20,6 +22,18 @@ export function createInitialTacticalConfig({
     },
   };
 
+  const mapWidthMeters =
+    request.mapWidthMeters ?? (sizeMeters === 1000 ? 800 : sizeMeters);
+  const mapDepthMeters =
+    request.mapDepthMeters ?? (sizeMeters === 1000 ? 1200 : sizeMeters);
+  const contextPlan = createContextualBoundsPlan({
+    playableWidthMeters: mapWidthMeters,
+    playableDepthMeters: mapDepthMeters,
+    bufferRatio: request.contextBufferRatio,
+    minBufferMeters: request.contextBufferMinMeters,
+    maxBufferMeters: request.contextBufferMaxMeters,
+  });
+
   return {
     lat,
     lon,
@@ -28,10 +42,14 @@ export function createInitialTacticalConfig({
     mapAspect:
       request.mapAspect ??
       (sizeMeters === 1000 ? "operational" : "square"),
-    mapWidthMeters:
-      request.mapWidthMeters ?? (sizeMeters === 1000 ? 800 : sizeMeters),
-    mapDepthMeters:
-      request.mapDepthMeters ?? (sizeMeters === 1000 ? 1200 : sizeMeters),
+    mapWidthMeters,
+    mapDepthMeters,
+    renderedWidthMeters: contextPlan.renderedWidthMeters,
+    renderedDepthMeters: contextPlan.renderedDepthMeters,
+    playableBounds: contextPlan.playableBounds,
+    renderedContextBounds: contextPlan.renderedContextBounds,
+    contextBufferXMeters: contextPlan.bufferXMeters,
+    contextBufferZMeters: contextPlan.bufferZMeters,
     useRealTerrain: request.useRealTerrain ?? true,
     terrainScale: request.terrainScale ?? 1.35,
     seed: request.seed ?? 1,
