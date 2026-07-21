@@ -59,7 +59,7 @@ async function waitForButton(pattern) {
   return button;
 }
 
-async function verifyDirectBattleLauncher() {
+async function verifyTestLabLaunchers() {
   await page.goto(`${baseUrl}/?dev=1`, {
     waitUntil: "domcontentloaded",
     timeout: 30_000,
@@ -71,7 +71,6 @@ async function verifyDirectBattleLauncher() {
 
   const directBattle = await waitForButton(/^Jump to replica battle/i);
   await directBattle.click();
-
   await page.getByText("Sandbox Mode", { exact: true }).waitFor({
     state: "visible",
     timeout: 45_000,
@@ -79,24 +78,31 @@ async function verifyDirectBattleLauncher() {
 
   const returnButton = await waitForButton(/^← Globe$/i);
   await returnButton.click();
-
   await page
     .getByRole("heading", { name: "Replica Neighborhood Test Lab" })
     .waitFor({ state: "visible", timeout: 30_000 });
-}
 
-async function enterTacticalFromFullSliceLauncher() {
   const fullSlice = await waitForButton(/^Play full vertical slice/i);
   await fullSlice.click();
+  await page.getByText("Campaign Lobby", { exact: true }).waitFor({
+    state: "visible",
+    timeout: 45_000,
+  });
+}
+
+async function enterTacticalFromGlobe() {
+  await page.goto(`${baseUrl}/?scenario=prototype-globe-smoke`, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
 
   await page.getByText("Campaign Lobby", { exact: true }).waitFor({
     state: "visible",
     timeout: 45_000,
   });
 
-  await page.waitForTimeout(750);
   const settings = await waitForButton(/^Settings$/i);
-  await settings.click({ force: true });
+  await settings.click();
 
   const knownLocation = page
     .getByRole("button", { name: /^St\. Paul \/ Harriet Island/i })
@@ -143,8 +149,8 @@ async function deployFriendlySquad(canvas) {
 }
 
 try {
-  await verifyDirectBattleLauncher();
-  await enterTacticalFromFullSliceLauncher();
+  await verifyTestLabLaunchers();
+  await enterTacticalFromGlobe();
 
   await page.getByText("Sandbox Mode", { exact: true }).waitFor({
     state: "visible",
