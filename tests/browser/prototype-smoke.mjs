@@ -94,8 +94,9 @@ async function enterTacticalFromFullSliceLauncher() {
     timeout: 45_000,
   });
 
+  await page.waitForTimeout(750);
   const settings = await waitForButton(/^Settings$/i);
-  await settings.click();
+  await settings.click({ force: true });
 
   const knownLocation = page
     .getByRole("button", { name: /^St\. Paul \/ Harriet Island/i })
