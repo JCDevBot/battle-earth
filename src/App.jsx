@@ -97,7 +97,8 @@ class StageErrorBoundary extends Component {
         <section className="w-full max-w-lg rounded border border-rose-700 bg-slate-900 p-6 shadow-xl">
           <h1 className="text-lg font-semibold">Stage failed to load</h1>
           <p className="mt-2 text-sm text-slate-300">
-            Battle Earth encountered an unexpected error while entering this stage.
+            Battle Earth encountered an unexpected error while entering this
+            stage.
           </p>
           <button
             className="mt-5 rounded bg-sky-700 px-4 py-2 text-sm font-semibold hover:bg-sky-600"
@@ -115,7 +116,9 @@ export default function App() {
   const [testLabEnabled] = useState(() =>
     isTestLabEnabled(runtimeSearch(), import.meta.env.DEV),
   );
-  const [scenarioId, setScenarioId] = useState(() => readScenarioId(runtimeSearch()));
+  const [scenarioId, setScenarioId] = useState(() =>
+    readScenarioId(runtimeSearch()),
+  );
   const [initialLocation] = useState(() => createScenarioLocation(scenarioId));
   const [showTestLab, setShowTestLab] = useState(
     () => testLabEnabled && !getScenario(scenarioId),
