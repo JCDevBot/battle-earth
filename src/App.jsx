@@ -1,12 +1,21 @@
 import { Component, lazy, Suspense, useState } from "react";
 import { createPrototypeSmokeLocation } from "./app/prototypeScenario.js";
 import {
+  SCENARIO_IDS,
+  SCENARIO_START_TYPES,
+  createScenarioLocation,
+  getScenario,
+  isTestLabEnabled,
+  readScenarioId,
+} from "./app/scenarioRegistry.js";
+import {
   APP_STAGES,
   canRenderStage,
   getStageForLocation,
   normalizeSelectedLocation,
 } from "./app/stageRouting.js";
 import { GlobePicker } from "./components/GlobePicker";
+import { TestLab } from "./components/TestLab";
 
 const CampaignStage = lazy(() =>
   import("./components/CampaignStage").then((module) => ({
@@ -19,14 +28,17 @@ const TacticalStage = lazy(() =>
   })),
 );
 
-function getPrototypeScenario() {
-  if (typeof window === "undefined") return null;
-
-  return new URLSearchParams(window.location.search).get("scenario");
+function runtimeSearch() {
+  return typeof window === "undefined" ? "" : window.location.search;
 }
 
-function getInitialPrototypeLocation(scenario) {
-  return scenario === "prototype-smoke" ? createPrototypeSmokeLocation() : null;
+function updateScenarioQuery(scenarioId) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (scenarioId) url.searchParams.set("scenario", scenarioId);
+  else url.searchParams.delete("scenario");
+  url.searchParams.set("dev", "1");
+  window.history.replaceState({}, "", url);
 }
 
 function createGlobeSmokeLocation(selectedLocation) {
@@ -85,14 +97,13 @@ class StageErrorBoundary extends Component {
         <section className="w-full max-w-lg rounded border border-rose-700 bg-slate-900 p-6 shadow-xl">
           <h1 className="text-lg font-semibold">Stage failed to load</h1>
           <p className="mt-2 text-sm text-slate-300">
-            Battle Earth encountered an unexpected error while entering this
-            stage. Return to the globe and try another location.
+            Battle Earth encountered an unexpected error while entering this stage.
           </p>
           <button
             className="mt-5 rounded bg-sky-700 px-4 py-2 text-sm font-semibold hover:bg-sky-600"
             onClick={this.props.onRecover}
           >
-            Return to globe
+            Return
           </button>
         </section>
       </main>
@@ -101,9 +112,13 @@ class StageErrorBoundary extends Component {
 }
 
 export default function App() {
-  const [prototypeScenario] = useState(getPrototypeScenario);
-  const [initialLocation] = useState(() =>
-    getInitialPrototypeLocation(prototypeScenario),
+  const [testLabEnabled] = useState(() =>
+    isTestLabEnabled(runtimeSearch(), import.meta.env.DEV),
+  );
+  const [scenarioId, setScenarioId] = useState(() => readScenarioId(runtimeSearch()));
+  const [initialLocation] = useState(() => createScenarioLocation(scenarioId));
+  const [showTestLab, setShowTestLab] = useState(
+    () => testLabEnabled && !getScenario(scenarioId),
   );
   const [stage, setStage] = useState(() =>
     initialLocation ? getStageForLocation(initialLocation) : APP_STAGES.GLOBE,
@@ -115,14 +130,26 @@ export default function App() {
     setStage(APP_STAGES.GLOBE);
   };
 
+  const returnFromStage = () => {
+    if (!testLabEnabled) {
+      returnToGlobe();
+      return;
+    }
+    setLocation(null);
+    setScenarioId(null);
+    setStage(APP_STAGES.GLOBE);
+    setShowTestLab(true);
+    updateScenarioQuery(null);
+  };
+
   const launchLocation = (selectedLocation) => {
     const normalizedLocation =
-      prototypeScenario === "prototype-globe-smoke"
+      scenarioId === SCENARIO_IDS.PROTOTYPE_GLOBE_SMOKE
         ? createGlobeSmokeLocation(selectedLocation)
         : normalizeSelectedLocation(selectedLocation);
 
     if (!normalizedLocation) {
-      returnToGlobe();
+      returnFromStage();
       return;
     }
 
@@ -130,16 +157,42 @@ export default function App() {
     setStage(getStageForLocation(normalizedLocation));
   };
 
+  const launchScenario = (nextScenarioId) => {
+    const scenario = getScenario(nextScenarioId);
+    if (!scenario) return;
+
+    setScenarioId(nextScenarioId);
+    setShowTestLab(false);
+    updateScenarioQuery(nextScenarioId);
+
+    if (scenario.startType === SCENARIO_START_TYPES.GLOBE) {
+      returnToGlobe();
+      return;
+    }
+
+    const nextLocation = normalizeSelectedLocation(
+      createScenarioLocation(nextScenarioId),
+    );
+    if (!nextLocation) {
+      returnFromStage();
+      return;
+    }
+    setLocation(nextLocation);
+    setStage(getStageForLocation(nextLocation));
+  };
+
+  if (showTestLab) return <TestLab onLaunchScenario={launchScenario} />;
+
   if (
     stage === APP_STAGES.CAMPAIGN &&
     canRenderStage(APP_STAGES.CAMPAIGN, location)
   ) {
     return (
-      <StageErrorBoundary key={stage} onRecover={returnToGlobe}>
+      <StageErrorBoundary key={stage} onRecover={returnFromStage}>
         <Suspense fallback={<StageLoadingFallback />}>
           <CampaignStage
             battleRequest={location.battleRequest}
-            onBack={returnToGlobe}
+            onBack={returnFromStage}
             onLaunchTactical={launchLocation}
           />
         </Suspense>
@@ -152,19 +205,35 @@ export default function App() {
     canRenderStage(APP_STAGES.TACTICAL, location)
   ) {
     return (
-      <StageErrorBoundary key={stage} onRecover={returnToGlobe}>
+      <StageErrorBoundary key={stage} onRecover={returnFromStage}>
         <Suspense fallback={<StageLoadingFallback />}>
           <TacticalStage
             lat={location.lat}
             lon={location.lon}
             sizeMeters={location.sizeMeters}
             battleRequest={location.battleRequest}
-            onBack={returnToGlobe}
+            onBack={returnFromStage}
           />
         </Suspense>
       </StageErrorBoundary>
     );
   }
 
-  return <GlobePicker onSelect={launchLocation} />;
+  return (
+    <div className="relative">
+      <GlobePicker onSelect={launchLocation} />
+      {testLabEnabled ? (
+        <button
+          type="button"
+          onClick={() => {
+            setShowTestLab(true);
+            updateScenarioQuery(null);
+          }}
+          className="fixed bottom-5 left-5 z-50 rounded border border-sky-700 bg-slate-950/90 px-4 py-2 text-xs font-semibold text-sky-200 shadow-xl hover:border-sky-400"
+        >
+          Test Lab
+        </button>
+      ) : null}
+    </div>
+  );
 }
