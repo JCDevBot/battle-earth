@@ -11,47 +11,56 @@ const browser = await chromium.launch({
   headless: true,
   args: ["--enable-unsafe-swiftshader"],
 });
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
-page.on("console", (message) => {
-  events.push({
-    type: "console",
-    level: message.type(),
-    text: message.text(),
+async function createInstrumentedPage() {
+  const nextPage = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
   });
-});
-page.on("pageerror", (error) => {
-  events.push({
-    type: "pageerror",
-    message: error.message,
-    stack: error.stack,
-  });
-});
-page.on("requestfailed", (request) => {
-  events.push({
-    type: "requestfailed",
-    url: request.url(),
-    failure: request.failure()?.errorText ?? "unknown",
-  });
-});
 
-await page.route("**/*", async (route) => {
-  const url = route.request().url();
-  if (
-    url.includes("overpass-api.de") ||
-    url.includes("overpass.kumi.systems") ||
-    url.includes("overpass.openstreetmap.ru")
-  ) {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ elements: [] }),
+  nextPage.on("console", (message) => {
+    events.push({
+      type: "console",
+      level: message.type(),
+      text: message.text(),
     });
-    return;
-  }
+  });
+  nextPage.on("pageerror", (error) => {
+    events.push({
+      type: "pageerror",
+      message: error.message,
+      stack: error.stack,
+    });
+  });
+  nextPage.on("requestfailed", (request) => {
+    events.push({
+      type: "requestfailed",
+      url: request.url(),
+      failure: request.failure()?.errorText ?? "unknown",
+    });
+  });
 
-  await route.continue();
-});
+  await nextPage.route("**/*", async (route) => {
+    const url = route.request().url();
+    if (
+      url.includes("overpass-api.de") ||
+      url.includes("overpass.kumi.systems") ||
+      url.includes("overpass.openstreetmap.ru")
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ elements: [] }),
+      });
+      return;
+    }
+
+    await route.continue();
+  });
+
+  return nextPage;
+}
+
+let page = await createInstrumentedPage();
 
 async function waitForButton(pattern) {
   const button = page.getByRole("button", { name: pattern }).first();
@@ -150,6 +159,9 @@ async function deployFriendlySquad(canvas) {
 
 try {
   await verifyTestLabLaunchers();
+  await page.close();
+  page = await createInstrumentedPage();
+
   await enterTacticalFromGlobe();
 
   await page.getByText("Sandbox Mode", { exact: true }).waitFor({
