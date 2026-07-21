@@ -59,11 +59,35 @@ async function waitForButton(pattern) {
   return button;
 }
 
-async function enterTacticalFromGlobe() {
-  await page.goto(`${baseUrl}/?scenario=prototype-globe-smoke`, {
+async function verifyDirectBattleLauncher() {
+  await page.goto(`${baseUrl}/?dev=1`, {
     waitUntil: "domcontentloaded",
     timeout: 30_000,
   });
+
+  await page
+    .getByRole("heading", { name: "Replica Neighborhood Test Lab" })
+    .waitFor({ state: "visible", timeout: 30_000 });
+
+  const directBattle = await waitForButton(/^Jump to replica battle/i);
+  await directBattle.click();
+
+  await page.getByText("Sandbox Mode", { exact: true }).waitFor({
+    state: "visible",
+    timeout: 45_000,
+  });
+
+  const returnButton = await waitForButton(/^← Globe$/i);
+  await returnButton.click();
+
+  await page
+    .getByRole("heading", { name: "Replica Neighborhood Test Lab" })
+    .waitFor({ state: "visible", timeout: 30_000 });
+}
+
+async function enterTacticalFromFullSliceLauncher() {
+  const fullSlice = await waitForButton(/^Play full vertical slice/i);
+  await fullSlice.click();
 
   await page.getByText("Campaign Lobby", { exact: true }).waitFor({
     state: "visible",
@@ -118,7 +142,8 @@ async function deployFriendlySquad(canvas) {
 }
 
 try {
-  await enterTacticalFromGlobe();
+  await verifyDirectBattleLauncher();
+  await enterTacticalFromFullSliceLauncher();
 
   await page.getByText("Sandbox Mode", { exact: true }).waitFor({
     state: "visible",
