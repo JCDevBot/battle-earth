@@ -131,30 +131,45 @@ async function enterTacticalFromGlobe() {
   await deployAnyway.click();
 }
 
+function deploymentCandidatesForCanvas(box) {
+  const xFractions = [0.18, 0.28, 0.38, 0.48, 0.58];
+  const yFractions = [0.32, 0.44, 0.56, 0.68, 0.78];
+
+  return yFractions.flatMap((yFraction) =>
+    xFractions.map((xFraction) => ({
+      x: Math.round(box.width * xFraction),
+      y: Math.round(box.height * yFraction),
+    })),
+  );
+}
+
 async function deployFriendlySquad(canvas) {
   const deployFriendly = await waitForButton(/^Deploy Friendly$/i);
-  await deployFriendly.click();
-
   const squadButton = page.locator('button[aria-label^="Select "]').first();
-  const candidatePositions = [
-    { x: 720, y: 470 },
-    { x: 620, y: 520 },
-    { x: 820, y: 420 },
-    { x: 520, y: 470 },
-  ];
+  const canvasBox = await canvas.boundingBox();
+
+  if (!canvasBox) {
+    throw new Error("Smoke-test canvas had no measurable bounds.");
+  }
+
+  const candidatePositions = deploymentCandidatesForCanvas(canvasBox);
 
   for (const position of candidatePositions) {
+    await deployFriendly.click();
     await canvas.click({ position });
 
     try {
-      await squadButton.waitFor({ state: "visible", timeout: 3_000 });
+      await squadButton.waitFor({ state: "visible", timeout: 1_500 });
       return squadButton;
     } catch {
-      await deployFriendly.click();
+      // Try the next deterministic position. Deployment can be rejected on roads,
+      // buildings, water, or outside the friendly side of the playable bounds.
     }
   }
 
-  throw new Error("Friendly squad did not deploy at any smoke-test position.");
+  throw new Error(
+    `Friendly squad did not deploy at any of ${candidatePositions.length} smoke-test positions.`,
+  );
 }
 
 try {
