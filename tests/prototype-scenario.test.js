@@ -18,6 +18,7 @@ describe("prototype smoke scenario", () => {
     expect(canRenderStage(APP_STAGES.TACTICAL, location)).toBe(true);
     expect(location.battleRequest.seed).toBe(1);
     expect(location.battleRequest.useRealTerrain).toBe(false);
+    expect(location.battleRequest.contextEnabled).toBe(false);
     expect(location.battleRequest.sandbox).toEqual({
       enabled: true,
       allowBothSides: true,
