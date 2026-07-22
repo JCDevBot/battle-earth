@@ -18,6 +18,8 @@ describe("scenario registry", () => {
       SCENARIO_IDS.VERTICAL_SLICE_FULL,
       SCENARIO_IDS.REPLICA_BATTLE,
       SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT,
+      SCENARIO_IDS.REPLICA_BATTLE_TERRAIN_ONLY,
+      SCENARIO_IDS.REPLICA_BATTLE_WATER_ONLY,
     ]);
     expect(
       scenarios.every((scenario) =>
@@ -50,6 +52,7 @@ describe("scenario registry", () => {
     );
     expect(location.battleRequest.seed).toBe(session.seed);
     expect(location.battleRequest.contextEnabled).toBe(true);
+    expect(location.battleRequest.diagnosticLayerMode).toBe("all");
   });
 
   it("creates a matched overscan-off benchmark for visual A/B diagnosis", () => {
@@ -67,6 +70,32 @@ describe("scenario registry", () => {
       selectedName: withContext.battleRequest.selectedName,
       seed: withContext.battleRequest.seed,
       contextEnabled: false,
+      diagnosticLayerMode: "all",
+    });
+  });
+
+  it("creates matched terrain-only and water-only diagnostics", () => {
+    const terrainOnly = createScenarioLocation(
+      SCENARIO_IDS.REPLICA_BATTLE_TERRAIN_ONLY,
+    );
+    const waterOnly = createScenarioLocation(
+      SCENARIO_IDS.REPLICA_BATTLE_WATER_ONLY,
+    );
+
+    expect(terrainOnly.battleRequest).toMatchObject({
+      contextEnabled: true,
+      diagnosticLayerMode: "terrain-only",
+    });
+    expect(waterOnly).toMatchObject({
+      lat: terrainOnly.lat,
+      lon: terrainOnly.lon,
+      sizeMeters: terrainOnly.sizeMeters,
+    });
+    expect(waterOnly.battleRequest).toMatchObject({
+      selectedName: terrainOnly.battleRequest.selectedName,
+      seed: terrainOnly.battleRequest.seed,
+      contextEnabled: true,
+      diagnosticLayerMode: "water-only",
     });
   });
 
