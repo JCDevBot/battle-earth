@@ -36,7 +36,7 @@ describe("contextual camera framing", () => {
     ).toBeNull();
   });
 
-  it("applies the compact frame to a MapEngine-compatible camera", () => {
+  it("anchors the compact frame to the terrain height at map center", () => {
     const engine = {
       camera: {
         position: { set: vi.fn() },
@@ -45,6 +45,9 @@ describe("contextual camera framing", () => {
       controls: {
         target: { set: vi.fn() },
         update: vi.fn(),
+      },
+      terrain: {
+        getWorldHeight: vi.fn(() => 42),
       },
     };
     const plan = {
@@ -56,9 +59,10 @@ describe("contextual camera framing", () => {
     };
 
     expect(applyContextualCameraFrame(engine, plan)).toBe(true);
-    expect(engine.camera.position.set).toHaveBeenCalledWith(0, 180, 260);
-    expect(engine.camera.lookAt).toHaveBeenCalledWith(0, 0, 0);
-    expect(engine.controls.target.set).toHaveBeenCalledWith(0, 0, 0);
+    expect(engine.terrain.getWorldHeight).toHaveBeenCalledWith(0, 0);
+    expect(engine.camera.position.set).toHaveBeenCalledWith(0, 222, 260);
+    expect(engine.camera.lookAt).toHaveBeenCalledWith(0, 42, 0);
+    expect(engine.controls.target.set).toHaveBeenCalledWith(0, 42, 0);
     expect(engine.controls.update).toHaveBeenCalledOnce();
   });
 });
