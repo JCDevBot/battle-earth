@@ -26,6 +26,7 @@ export function TacticalStage({ lat, lon, sizeMeters = 350, battleRequest = null
     mapAspect: initialBattleRequest.mapAspect ?? (sizeMeters === 1000 ? "operational" : "square"),
     mapWidthMeters: initialBattleRequest.mapWidthMeters ?? (sizeMeters === 1000 ? 800 : sizeMeters),
     mapDepthMeters: initialBattleRequest.mapDepthMeters ?? (sizeMeters === 1000 ? 1200 : sizeMeters),
+    contextEnabled: initialBattleRequest.contextEnabled !== false,
     useRealTerrain: true,
     terrainScale: 1.35,
     seed: 1,
@@ -234,29 +235,26 @@ export function TacticalStage({ lat, lon, sizeMeters = 350, battleRequest = null
           <div className="mb-2 flex items-center justify-between">
             <div>
               <div className="font-bold uppercase tracking-wide text-sky-300">Sandbox Mode</div>
-              <div className="text-[11px] text-slate-500">{config.battleRequest?.selectedName ?? "Custom Location"}</div>
+              <div className="text-[11px] text-slate-500">{config.battleRequest?.selectedName ?? "Test Location"}</div>
             </div>
-            <div className="rounded bg-slate-900 px-2 py-1 font-mono text-[10px] text-slate-400">{config.battleRequest?.gameMode ?? "freeplay"}</div>
+            <span className="font-mono text-[10px] text-slate-500">{config.battleRequest?.gameMode ?? "freeplay"}</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <button className={`rounded border px-2 py-1 ${deployMode === "friendly" ? "border-emerald-300 bg-emerald-900 text-white" : "border-slate-700 bg-slate-900 hover:border-emerald-400"}`} onClick={spawnFriendlySquad}>Deploy Friendly</button>
-            <button className={`rounded border px-2 py-1 ${deployMode === "enemy" ? "border-rose-300 bg-rose-900 text-white" : "border-slate-700 bg-slate-900 hover:border-rose-400"}`} onClick={spawnEnemySquad}>Deploy Enemy</button>
-            <button className="rounded border border-slate-700 bg-slate-900 px-2 py-1 hover:border-sky-400" onClick={selectNextSquad}>Select Next</button>
-            <button className="rounded border border-slate-700 bg-slate-900 px-2 py-1 hover:border-amber-400" onClick={resetInfantry}>Clear Units</button>
+            <button className={`rounded border px-2 py-1 ${deployMode === "friendly" ? "border-sky-400 bg-sky-900/50" : "border-slate-700 bg-slate-900"}`} onClick={spawnFriendlySquad}>Deploy Friendly</button>
+            <button className={`rounded border px-2 py-1 ${deployMode === "enemy" ? "border-rose-400 bg-rose-900/50" : "border-slate-700 bg-slate-900"}`} onClick={spawnEnemySquad}>Deploy Enemy</button>
+            <button className="rounded border border-slate-700 bg-slate-900 px-2 py-1" onClick={selectNextSquad}>Select Next</button>
+            <button className="rounded border border-slate-700 bg-slate-900 px-2 py-1" onClick={resetInfantry}>Clear Units</button>
           </div>
-          <div className="mt-2 text-[11px] text-slate-500">
-            Click the map after choosing a side. You control both teams for testing movement, cover, and feel.
-          </div>
+          <p className="mt-2 text-[11px] leading-4 text-slate-500">Click the map after choosing a side. You control both teams for testing movement, cover, and feel.</p>
         </div>
       )}
 
-      <div className="absolute right-5 top-20 z-20 rounded border border-slate-600 bg-slate-950/90 px-3 py-2 text-center text-xs shadow-lg">
-        <div className="relative mx-auto mb-1 h-12 w-12 rounded-full border border-slate-500">
-          <div className="absolute left-1/2 top-1/2 h-8 w-0.5 origin-bottom -translate-x-1/2 -translate-y-full bg-red-400" style={{ transform: `translate(-50%, -100%) rotate(${-cameraStats.headingDegrees}deg)` }} />
-          <div className="absolute inset-x-0 top-0 text-[10px] font-bold text-red-300">N</div>
-          <div className="absolute inset-x-0 bottom-0 text-[10px] text-slate-400">S</div>
+      <div className="absolute right-5 top-20 z-20 rounded border border-slate-700 bg-slate-950/90 p-3 text-xs text-slate-300 shadow-xl">
+        <div className="mb-1 text-center text-[10px] font-bold uppercase tracking-wide text-slate-400">N</div>
+        <div className="relative mx-auto h-12 w-12 rounded-full border border-slate-600">
+          <div className="absolute left-1/2 top-1/2 h-0.5 w-5 origin-left -translate-y-1/2 bg-rose-400" style={{ transform: `translateY(-50%) rotate(${cameraStats.headingDegrees - 90}deg)` }} />
         </div>
-        <div className="font-mono text-slate-300">{Math.round(cameraStats.headingDegrees)}°</div>
+        <div className="mt-1 text-center font-mono text-[10px] text-slate-500">{Math.round(cameraStats.headingDegrees)}°</div>
       </div>
 
       {sidebarOpen && (
@@ -265,11 +263,12 @@ export function TacticalStage({ lat, lon, sizeMeters = 350, battleRequest = null
           setConfig={setConfig}
           onGenerate={generateMap}
           onClearCache={clearCache}
+          logs={logs}
           analysis={analysis}
           renderStats={renderStats}
-          destructionStats={destructionStats}
           performanceStats={performanceStats}
           generationStats={generationStats}
+          destructionStats={destructionStats}
           tacticalStats={tacticalStats}
           infantryStats={infantryStats}
           fogStats={fogStats}
@@ -280,24 +279,22 @@ export function TacticalStage({ lat, lon, sizeMeters = 350, battleRequest = null
           strategicPoiStats={strategicPoiStats}
           battlefieldGridStats={battlefieldGridStats}
           tacticalBuildingStats={tacticalBuildingStats}
-          deployMode={deployMode}
           debugDamageEnabled={debugDamageEnabled}
+          onToggleDebugDamage={toggleDebugDamage}
           sandboxWeapon={sandboxWeapon}
           onSetSandboxWeapon={setWeapon}
-          onToggleDebugDamage={toggleDebugDamage}
-          onResetDestruction={resetDestruction}
           onDebugBlast={debugBlast}
+          onResetDestruction={resetDestruction}
           onSetLayerVisible={setLayerVisible}
           onSetTacticalOverlayVisible={setTacticalOverlayVisible}
           onSetTacticalOverlayMode={setTacticalOverlayMode}
-          onSpawnFriendlySquad={spawnFriendlySquad}
-          onSpawnEnemySquad={spawnEnemySquad}
-          onSelectNextSquad={selectNextSquad}
-          onSelectNextFriendlySquad={selectNextFriendlySquad}
-          onSelectNextEnemySquad={selectNextEnemySquad}
-          onOrderSelectedSquad={orderSelectedSquad}
+          onSpawnFriendly={spawnFriendlySquad}
+          onSpawnEnemy={spawnEnemySquad}
+          onSelectNextFriendly={selectNextFriendlySquad}
+          onSelectNextEnemy={selectNextEnemySquad}
+          onOrderSelected={orderSelectedSquad}
           onIssueSquadMission={issueSquadMission}
-          onHoldSelectedSquad={holdSelectedSquad}
+          onHoldSelected={holdSelectedSquad}
           onResetInfantry={resetInfantry}
           onSetFogOfWarEnabled={setFogOfWarEnabled}
           onSetFogVisionDebug={setFogVisionDebug}
@@ -308,166 +305,38 @@ export function TacticalStage({ lat, lon, sizeMeters = 350, battleRequest = null
           onSetFollowSelectedSquad={setFollowSelectedSquad}
           onSetCameraPreset={setCameraPreset}
           onResetCamera={resetCamera}
-          onClose={() => setSidebarOpen(false)}
+          classificationInspect={classificationInspect}
         />
       )}
 
-
-      {classificationInspect && (
-        <ClassificationInspectorPanel
-          inspection={classificationInspect}
-          onClose={() => setClassificationInspect(null)}
-        />
-      )}
+      {loading && <LoadingOverlay />}
 
       <UnitDashboard
-        infantryStats={infantryStats}
+        squads={engineRef.current?.getSquadSnapshots?.() ?? []}
         onSelectSquad={selectSquadFromDashboard}
       />
 
-      <UnitCommandCard
-        squad={(infantryStats?.squads ?? []).find((squad) => squad.id === activeCommandCardId)}
-        position={commandCardPosition}
-        commandMode={unitCommandMode}
-        onCommand={startUnitCommand}
-        onHold={holdFromCommandCard}
-        onRetreat={retreatFromCommandCard}
-        onClose={closeUnitCommandCard}
+      {activeCommandCardId && commandCardPosition && (
+        <UnitCommandCard
+          squad={engineRef.current?.getSquadSnapshotById?.(activeCommandCardId)}
+          screenPosition={commandCardPosition}
+          commandMode={unitCommandMode}
+          onStartCommand={startUnitCommand}
+          onHold={holdFromCommandCard}
+          onRetreat={retreatFromCommandCard}
+          onCancel={cancelUnitCommand}
+          onClose={closeUnitCommandCard}
+        />
+      )}
+
+      <DebugPanel
+        buildingCommandMenu={buildingCommandMenu}
+        missionCommandMenu={missionCommandMenu}
+        onIssueBuildingOrder={issueBuildingOrder}
+        onIssueTerrainMission={issueTerrainMission}
+        onCloseBuildingMenu={closeBuildingMenu}
+        onCloseMissionMenu={closeMissionMenu}
       />
-
-
-      {missionCommandMenu.visible && (
-        <div
-          className="absolute z-30 w-48 rounded border border-sky-400/60 bg-slate-950/95 p-3 text-xs shadow-2xl"
-          style={{ left: Math.min(missionCommandMenu.x ?? 20, window.innerWidth - 220), top: Math.min(missionCommandMenu.y ?? 20, window.innerHeight - 190) }}
-        >
-          <div className="mb-2 flex items-start justify-between gap-2">
-            <div>
-              <div className="font-bold text-sky-200">Mission order</div>
-              <div className="mt-1 text-[11px] text-slate-500">Choose the squad's intent for this location.</div>
-            </div>
-            <button className="rounded px-2 text-slate-400 hover:bg-slate-800 hover:text-white" onClick={closeMissionMenu}>×</button>
-          </div>
-          <div className="space-y-1">
-            <button className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-left hover:bg-emerald-800" onClick={() => issueTerrainMission("defend")}>Defend</button>
-            <button className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-left hover:bg-rose-800" onClick={() => issueTerrainMission("attack")}>Attack</button>
-            <button className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-left hover:bg-amber-800" onClick={() => issueTerrainMission("ambush")}>Ambush</button>
-          </div>
-        </div>
-      )}
-      {buildingCommandMenu.visible && (
-        <div
-          className="absolute z-30 w-64 rounded border border-yellow-400/60 bg-slate-950/95 p-3 text-xs shadow-2xl"
-          style={{ left: Math.min(buildingCommandMenu.x ?? 20, window.innerWidth - 290), top: Math.min(buildingCommandMenu.y ?? 20, window.innerHeight - 260) }}
-        >
-          <div className="mb-2 flex items-start justify-between gap-2">
-            <div>
-              <div className="font-bold text-yellow-200">Building orders</div>
-              <div className="text-slate-400">{buildingCommandMenu.state} · {buildingCommandMenu.health}/{buildingCommandMenu.maxHealth} HP</div>
-              <div className="mt-1 text-[11px] text-slate-500">Single-click defaults to defensive line. Use rally for a maintained position.</div>
-            </div>
-            <button className="rounded px-2 text-slate-400 hover:bg-slate-800 hover:text-white" onClick={closeBuildingMenu}>×</button>
-          </div>
-          <div className="space-y-1">
-            <button className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-left hover:bg-sky-800" onClick={() => issueBuildingOrder({ type: "occupy_building", fireMode: "free" })}>Occupy building · fire at will</button>
-            <button className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-left hover:bg-sky-800" onClick={() => issueBuildingOrder({ type: "occupy_building", fireMode: "return" })}>Occupy building · return fire</button>
-            <button className="w-full rounded border border-violet-500/60 bg-violet-950/60 px-2 py-1 text-left hover:bg-violet-800" onClick={() => issueBuildingOrder({ type: "occupy_building", fireMode: "return", rallyPoint: true, reinforcementPolicy: "maintain" })}>Occupy + rally point · maintain strength</button>
-            <button className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-left hover:bg-sky-800" onClick={() => issueBuildingOrder({ type: "occupy_building", fireMode: "hold" })}>Occupy building · ambush / hold fire</button>
-            <button className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-left hover:bg-emerald-800" onClick={() => issueBuildingOrder({ type: "use_building_cover", fireMode: "free" })}>Defensive line · fire at will</button>
-            <button className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-left hover:bg-emerald-800" onClick={() => issueBuildingOrder({ type: "use_building_cover", fireMode: "return" })}>Defensive line · return fire</button>
-            <button className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-left hover:bg-emerald-800" onClick={() => issueBuildingOrder({ type: "use_building_cover", fireMode: "hold" })}>Defensive line · hold fire</button>
-          </div>
-        </div>
-      )}
-      <LoadingOverlay visible={loading} />
-    </div>
-  );
-}
-
-
-function formatTag(tags = {}) {
-  for (const key of ["natural", "landuse", "leisure", "waterway", "water", "building", "highway"]) {
-    if (tags?.[key]) return `${key}=${tags[key]}`;
-  }
-  return "none";
-}
-
-function yesNo(value) {
-  return value ? "YES" : "NO";
-}
-
-function ClassificationInspectorPanel({ inspection, onClose }) {
-  const className = String(inspection.groundClass ?? "unknown").toUpperCase();
-  const canopy = inspection.canopyScore == null ? "n/a" : inspection.canopyScore.toFixed(2);
-  const threshold = inspection.canopyThreshold == null ? "n/a" : inspection.canopyThreshold.toFixed(2);
-  return (
-    <div className="absolute bottom-5 right-5 z-30 w-[360px] rounded border border-cyan-400/70 bg-slate-950/95 p-4 text-xs shadow-2xl">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-bold text-cyan-200">Classification inspector</div>
-          <div className="mt-1 text-[11px] text-slate-400">Click another color-coded polygon to inspect it.</div>
-        </div>
-        <button className="rounded px-2 text-slate-400 hover:bg-slate-800 hover:text-white" onClick={onClose}>×</button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono">
-        <div className="text-slate-500">Position</div><div>X {inspection.position.x.toFixed(1)} · Z {inspection.position.z.toFixed(1)}</div>
-        <div className="text-slate-500">Ground class</div><div className="font-bold text-yellow-200">{className}</div>
-        <div className="text-slate-500">OSM tag</div><div>{formatTag(inspection.tags)}</div>
-        <div className="text-slate-500">Area</div><div>{Math.round(inspection.area).toLocaleString()} m²</div>
-        <div className="text-slate-500">Chunk</div><div>{inspection.chunk}</div>
-        <div className="text-slate-500">Vegetation</div><div className={inspection.vegetationEligible ? "text-emerald-300" : "text-rose-300"}>{inspection.vegetationEligible ? "ELIGIBLE" : "BLOCKED"}</div>
-      </div>
-
-      <div className="mt-3 rounded border border-slate-700 bg-slate-900/80 p-2">
-        <div className="mb-1 font-bold text-slate-300">Exclusions</div>
-        <div className="grid grid-cols-2 gap-y-1 font-mono">
-          <div>Water buffer</div><div className={inspection.exclusions.waterBuffer ? "text-rose-300" : "text-emerald-300"}>{yesNo(inspection.exclusions.waterBuffer)}</div>
-          <div>Road buffer</div><div className={inspection.exclusions.roadBuffer ? "text-rose-300" : "text-emerald-300"}>{yesNo(inspection.exclusions.roadBuffer)}</div>
-          <div>Building buffer</div><div className={inspection.exclusions.buildingBuffer ? "text-rose-300" : "text-emerald-300"}>{yesNo(inspection.exclusions.buildingBuffer)}</div>
-          <div>Canopy score</div><div>{canopy} / {threshold}</div>
-        </div>
-      </div>
-
-      {inspection.water && (
-        <div className="mt-3 rounded border border-blue-500/50 bg-slate-900/80 p-2">
-          <div className="mb-1 font-bold text-blue-200">Water feature</div>
-          <div className="grid grid-cols-2 gap-y-1 font-mono">
-            <div>Type</div><div>{String(inspection.water.type ?? "water").toUpperCase()}</div>
-            <div>Surface elev.</div><div>{inspection.water.surfaceElevation?.toFixed?.(2) ?? "n/a"} m</div>
-            <div>Terrain min/max</div><div>{inspection.water.terrainMin?.toFixed?.(2) ?? "n/a"} / {inspection.water.terrainMax?.toFixed?.(2) ?? "n/a"} m</div>
-            <div>Est. depth</div><div>{inspection.water.estimatedDepth?.toFixed?.(2) ?? "n/a"} m</div>
-            <div>Actual point depth</div><div>{inspection.water.pointDepth?.toFixed?.(2) ?? "n/a"} m</div>
-            <div>Flow speed</div><div>{inspection.water.flowSpeed?.toFixed?.(2) ?? "n/a"} m/s</div>
-            <div>Flow vector</div><div>X {inspection.water.flowVector?.x ?? 0} · Z {inspection.water.flowVector?.z ?? 0}</div>
-            <div>Terrain modified</div><div className={inspection.water.terrainModified ? "text-emerald-300" : "text-amber-300"}>{yesNo(inspection.water.terrainModified)}</div>
-          </div>
-        </div>
-      )}
-
-      {inspection.terrain && (
-        <div className="mt-3 rounded border border-slate-700 bg-slate-900/80 p-2">
-          <div className="mb-1 font-bold text-slate-300">Terrain sample</div>
-          <div className="grid grid-cols-2 gap-y-1 font-mono">
-            <div>Base height</div><div>{inspection.terrain.baseHeight?.toFixed?.(2) ?? "n/a"} m</div>
-            <div>Final height</div><div>{inspection.terrain.finalHeight?.toFixed?.(2) ?? "n/a"} m</div>
-            <div>Modifier delta</div><div className={(inspection.terrain.modifierDelta ?? 0) < 0 ? "text-blue-300" : "text-slate-300"}>{inspection.terrain.modifierDelta?.toFixed?.(2) ?? "0.00"} m</div>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-3 rounded border border-slate-700 bg-slate-900/80 p-2">
-        <div className="mb-1 font-bold text-slate-300">Decision trace</div>
-        <ol className="list-decimal space-y-1 pl-4 text-slate-300">
-          {(inspection.ruleTrace ?? []).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
-        </ol>
-      </div>
-
-      {!!inspection.overlapping?.length && (
-        <div className="mt-3 text-[11px] text-slate-400">
-          Overlaps: {inspection.overlapping.map((item) => `${String(item.type).toUpperCase()} (${formatTag(item.tags)})`).join(" · ")}
-        </div>
-      )}
     </div>
   );
 }
