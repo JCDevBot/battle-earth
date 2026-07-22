@@ -1,6 +1,57 @@
 import { DataCache } from "./DataCache";
 import { OSM_FEATURE_PROFILES } from "./osmFeatureProfile";
 
+function reverseCopy(values) {
+  return [...values].reverse();
+}
+
+function joinMemberWays(members, wayIndex) {
+  const remaining = members
+    .map((member) => wayIndex.get(member.ref)?.nodes)
+    .filter((nodes) => Array.isArray(nodes) && nodes.length >= 2)
+    .map((nodes) => [...nodes]);
+  const rings = [];
+
+  while (remaining.length) {
+    const chain = remaining.shift();
+    let advanced = true;
+
+    while (chain[0] !== chain[chain.length - 1] && advanced) {
+      advanced = false;
+      const chainStart = chain[0];
+      const chainEnd = chain[chain.length - 1];
+
+      for (let index = 0; index < remaining.length; index++) {
+        const candidate = remaining[index];
+        const candidateStart = candidate[0];
+        const candidateEnd = candidate[candidate.length - 1];
+
+        if (candidateStart === chainEnd) {
+          chain.push(...candidate.slice(1));
+        } else if (candidateEnd === chainEnd) {
+          chain.push(...reverseCopy(candidate).slice(1));
+        } else if (candidateEnd === chainStart) {
+          chain.unshift(...candidate.slice(0, -1));
+        } else if (candidateStart === chainStart) {
+          chain.unshift(...reverseCopy(candidate).slice(0, -1));
+        } else {
+          continue;
+        }
+
+        remaining.splice(index, 1);
+        advanced = true;
+        break;
+      }
+    }
+
+    if (chain.length >= 4 && chain[0] === chain[chain.length - 1]) {
+      rings.push(chain);
+    }
+  }
+
+  return rings;
+}
+
 export class OSMService {
   constructor({
     apiUrl = "https://overpass-api.de/api/interpreter",
@@ -94,19 +145,18 @@ export class OSMService {
   }
 
   /**
-   * Convert relation multipolygons into synthetic ways so the builder can
-   * process them without special-casing relations. Each outer member of a
-   * relation becomes a way element with the relation's tags.
+   * Convert relation multipolygons into synthetic closed ways so the builder can
+   * process them without special-casing relations. OSM multipolygon boundaries
+   * are commonly split across several open member ways; filling each member as
+   * its own polygon creates large artificial slabs across the map.
    */
   resolveRelations(data) {
     const elements = data.elements ?? [];
-    const nodeIndex = new Map();
     const wayIndex = new Map();
     const output = [];
 
     for (const el of elements) {
-      if (el.type === "node") nodeIndex.set(el.id, el);
-      else if (el.type === "way") wayIndex.set(el.id, el);
+      if (el.type === "way") wayIndex.set(el.id, el);
     }
 
     for (const el of elements) {
@@ -117,25 +167,24 @@ export class OSMService {
 
       if (el.type !== "relation" || !el.tags) continue;
 
-      const outers = (el.members ?? []).filter((m) => m.type === "way" && (m.role === "outer" || m.role === ""));
-      const inners = (el.members ?? [])
-        .filter((m) => m.type === "way" && m.role === "inner")
-        .map((m) => wayIndex.get(m.ref)?.nodes)
-        .filter((nodes) => Array.isArray(nodes) && nodes.length >= 3);
-      for (const member of outers) {
-        const way = wayIndex.get(member.ref);
-        if (!way || !way.nodes?.length) continue;
-        // Emit a synthetic way with the relation's tags. Preserve inner rings so
-        // water multipolygons can reconstruct islands instead of painting water
-        // over them.
+      const outerMembers = (el.members ?? []).filter(
+        (member) => member.type === "way" && (member.role === "outer" || member.role === "")
+      );
+      const innerMembers = (el.members ?? []).filter(
+        (member) => member.type === "way" && member.role === "inner"
+      );
+      const outerRings = joinMemberWays(outerMembers, wayIndex);
+      const innerRings = joinMemberWays(innerMembers, wayIndex);
+
+      outerRings.forEach((nodes, ringIndex) => {
         output.push({
           type: "way",
-          id: -(el.id * 1000 + member.ref % 1000),
+          id: -(el.id * 1000 + ringIndex + 1),
           tags: { ...el.tags },
-          nodes: way.nodes,
-          innerRings: inners
+          nodes,
+          innerRings
         });
-      }
+      });
     }
 
     return { ...data, elements: output };
