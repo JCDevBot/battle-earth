@@ -68,6 +68,64 @@ async function waitForButton(pattern) {
   return button;
 }
 
+async function waitForGeneratedCanvas() {
+  const loadingOverlay = page.getByText("Generating map...", { exact: true });
+  await loadingOverlay.waitFor({ state: "hidden", timeout: 90_000 });
+
+  const canvas = page.locator("canvas").first();
+  await canvas.waitFor({ state: "visible", timeout: 45_000 });
+  return canvas;
+}
+
+async function assertContextualGeneration(canvas) {
+  const contextual = await canvas.evaluate((element) => ({
+    status: element.dataset.contextualGeneration,
+    playableWidth: Number(element.dataset.playableWidthMeters),
+    playableDepth: Number(element.dataset.playableDepthMeters),
+    renderWidth: Number(element.dataset.renderWidthMeters),
+    renderDepth: Number(element.dataset.renderDepthMeters),
+    outerSkirtVisible: element.dataset.outerSkirtVisible,
+    renderedAreaMultiplier: Number(element.dataset.renderedAreaMultiplier),
+    renderedAreaIncreasePercent: Number(
+      element.dataset.renderedAreaIncreasePercent,
+    ),
+    generationDurationMs: Number(element.dataset.generationDurationMs),
+    measurementsAvailable:
+      element.dataset.contextualMeasurementsAvailable === "true",
+  }));
+
+  if (contextual.status !== "ready") {
+    throw new Error("Contextual generation diagnostics were not exposed.");
+  }
+  if (
+    !(contextual.renderWidth > contextual.playableWidth) ||
+    !(contextual.renderDepth > contextual.playableDepth)
+  ) {
+    throw new Error(
+      `Rendered context did not exceed playable bounds: ${JSON.stringify(contextual)}`,
+    );
+  }
+  if (contextual.outerSkirtVisible !== "false") {
+    throw new Error("The legacy flat outer skirt remained enabled.");
+  }
+  if (
+    !(contextual.renderedAreaMultiplier > 1) ||
+    !(contextual.renderedAreaIncreasePercent > 0)
+  ) {
+    throw new Error(
+      `Contextual area impact was not reported: ${JSON.stringify(contextual)}`,
+    );
+  }
+  if (
+    !contextual.measurementsAvailable ||
+    !(contextual.generationDurationMs >= 0)
+  ) {
+    throw new Error(
+      `Contextual runtime measurement was unavailable: ${JSON.stringify(contextual)}`,
+    );
+  }
+}
+
 async function verifyTestLabLaunchers() {
   await page.goto(`${baseUrl}/?dev=1`, {
     waitUntil: "domcontentloaded",
@@ -84,6 +142,7 @@ async function verifyTestLabLaunchers() {
     state: "visible",
     timeout: 45_000,
   });
+  await assertContextualGeneration(await waitForGeneratedCanvas());
 
   const returnButton = await waitForButton(/^← Globe$/i);
   await returnButton.click();
@@ -188,59 +247,7 @@ try {
     timeout: 45_000,
   });
 
-  const loadingOverlay = page.getByText("Generating map...", { exact: true });
-  await loadingOverlay.waitFor({ state: "hidden", timeout: 90_000 });
-
-  const canvas = page.locator("canvas").first();
-  await canvas.waitFor({ state: "visible", timeout: 45_000 });
-
-  const contextual = await canvas.evaluate((element) => ({
-    status: element.dataset.contextualGeneration,
-    playableWidth: Number(element.dataset.playableWidthMeters),
-    playableDepth: Number(element.dataset.playableDepthMeters),
-    renderWidth: Number(element.dataset.renderWidthMeters),
-    renderDepth: Number(element.dataset.renderDepthMeters),
-    outerSkirtVisible: element.dataset.outerSkirtVisible,
-    renderedAreaMultiplier: Number(element.dataset.renderedAreaMultiplier),
-    renderedAreaIncreasePercent: Number(
-      element.dataset.renderedAreaIncreasePercent,
-    ),
-    generationDurationMs: Number(element.dataset.generationDurationMs),
-    measurementsAvailable:
-      element.dataset.contextualMeasurementsAvailable === "true",
-  }));
-
-  if (contextual.status !== "ready") {
-    throw new Error("Contextual generation diagnostics were not exposed.");
-  }
-  if (
-    !(contextual.renderWidth > contextual.playableWidth) ||
-    !(contextual.renderDepth > contextual.playableDepth)
-  ) {
-    throw new Error(
-      `Rendered context did not exceed playable bounds: ${JSON.stringify(contextual)}`,
-    );
-  }
-  if (contextual.outerSkirtVisible !== "false") {
-    throw new Error("The legacy flat outer skirt remained enabled.");
-  }
-  if (
-    !(contextual.renderedAreaMultiplier > 1) ||
-    !(contextual.renderedAreaIncreasePercent > 0)
-  ) {
-    throw new Error(
-      `Contextual area impact was not reported: ${JSON.stringify(contextual)}`,
-    );
-  }
-  if (
-    !contextual.measurementsAvailable ||
-    !(contextual.generationDurationMs >= 0)
-  ) {
-    throw new Error(
-      `Contextual runtime measurement was unavailable: ${JSON.stringify(contextual)}`,
-    );
-  }
-
+  const canvas = await waitForGeneratedCanvas();
   const friendlyUnit = await deployFriendlySquad(canvas);
   await friendlyUnit.click();
 
