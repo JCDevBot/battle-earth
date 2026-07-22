@@ -16,8 +16,8 @@ describe("contextual camera framing", () => {
       }),
     ).toEqual({
       x: 0,
-      y: 180,
-      z: 260,
+      y: 150,
+      z: 220,
       targetX: 0,
       targetY: 0,
       targetZ: 0,
@@ -56,7 +56,7 @@ describe("contextual camera framing", () => {
     };
 
     expect(applyContextualCameraFrame(engine, plan)).toBe(true);
-    expect(engine.camera.position.set).toHaveBeenCalledWith(0, 180, 260);
+    expect(engine.camera.position.set).toHaveBeenCalledWith(0, 150, 220);
     expect(engine.camera.lookAt).toHaveBeenCalledWith(0, 0, 0);
     expect(engine.controls.target.set).toHaveBeenCalledWith(0, 0, 0);
     expect(engine.controls.update).toHaveBeenCalledOnce();
