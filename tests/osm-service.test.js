@@ -15,7 +15,7 @@ function createService() {
 describe("OSMService", () => {
   it("uses a new cache namespace for corrected relation assembly", () => {
     expect(createService().getCacheKey(44, -94, 45, -93, "expanded")).toContain(
-      "expanded_v3_",
+      "expanded_v4_",
     );
   });
 });
@@ -49,6 +49,73 @@ describe("OSMService.resolveRelations", () => {
     expect(synthetic).toHaveLength(1);
     expect(synthetic[0].nodes).toEqual([1, 2, 3, 4, 1]);
     expect(synthetic[0].tags.natural).toBe("water");
+  });
+
+  it("removes assembled area-member fragments from resolved output", () => {
+    const resolved = createService().resolveRelations({
+      elements: [
+        {
+          type: "way",
+          id: 10,
+          nodes: [1, 2, 3],
+          tags: { natural: "water" },
+        },
+        {
+          type: "way",
+          id: 11,
+          nodes: [3, 4, 1],
+          tags: { natural: "water" },
+        },
+        {
+          type: "relation",
+          id: 94,
+          tags: { type: "multipolygon", natural: "water" },
+          members: [
+            { type: "way", ref: 10, role: "outer" },
+            { type: "way", ref: 11, role: "outer" },
+          ],
+        },
+      ],
+    });
+
+    expect(
+      resolved.elements.filter(
+        (element) => element.type === "way" && element.id > 0,
+      ),
+    ).toEqual([]);
+    expect(
+      resolved.elements.filter(
+        (element) => element.type === "way" && element.id < 0,
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("preserves independent line semantics on a consumed member way", () => {
+    const resolved = createService().resolveRelations({
+      elements: [
+        {
+          type: "way",
+          id: 10,
+          nodes: [1, 2, 3],
+          tags: { barrier: "fence" },
+        },
+        { type: "way", id: 11, nodes: [3, 4, 1] },
+        {
+          type: "relation",
+          id: 95,
+          tags: { type: "multipolygon", landuse: "military" },
+          members: [
+            { type: "way", ref: 10, role: "outer" },
+            { type: "way", ref: 11, role: "outer" },
+          ],
+        },
+      ],
+    });
+
+    expect(resolved.elements).toContainEqual(
+      expect.objectContaining({ id: 10, tags: { barrier: "fence" } }),
+    );
+    expect(resolved.elements.some((element) => element.id === 11)).toBe(false);
   });
 
   it("reverses member direction when necessary", () => {
@@ -97,6 +164,8 @@ describe("OSMService.resolveRelations", () => {
         (element) => element.type === "way" && element.id < 0,
       ),
     ).toEqual([]);
+    expect(resolved.elements.some((element) => element.id === 10)).toBe(true);
+    expect(resolved.elements.some((element) => element.id === 11)).toBe(true);
   });
 
   it("assembles inner members as closed holes", () => {
