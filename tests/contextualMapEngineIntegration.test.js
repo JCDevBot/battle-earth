@@ -203,6 +203,42 @@ describe("contextual MapEngine integration", () => {
     );
   });
 
+  it("does not fall back to contextual visual features for an out-of-bounds deployment pick", () => {
+    const outsideTerrainHit = { point: { x: 220, y: 1, z: 0 } };
+    const originalPick = vi.fn(() => ({
+      point: { x: 220, y: 3, z: 0 },
+      hit: { object: { name: "context-building" } },
+    }));
+
+    class TestMapEngine {
+      constructor() {
+        this.deployMode = "friendly";
+        this.terrain = { mesh: {} };
+        this.bounds = { containsPoint: vi.fn(() => false) };
+        this.raycaster = {
+          intersectObject: vi.fn(() => [outsideTerrainHit]),
+        };
+        this.updatePointerFromEvent = vi.fn();
+      }
+    }
+    TestMapEngine.prototype.pickWorldPoint = originalPick;
+
+    installContextualMapEngineGeneration(TestMapEngine, async () =>
+      contextualResult(),
+    );
+
+    const engine = new TestMapEngine();
+    expect(engine.pickWorldPoint({ clientX: 12, clientY: 24 })).toBeNull();
+    expect(originalPick).not.toHaveBeenCalled();
+
+    engine.deployMode = null;
+    expect(engine.pickWorldPoint({ clientX: 12, clientY: 24 })).toEqual({
+      point: { x: 220, y: 3, z: 0 },
+      hit: { object: { name: "context-building" } },
+    });
+    expect(originalPick).toHaveBeenCalledOnce();
+  });
+
   it("is idempotent and does not replace an installed runner", async () => {
     class TestMapEngine {}
     const firstRunner = vi.fn(async () => "first");
