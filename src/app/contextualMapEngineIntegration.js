@@ -75,6 +75,33 @@ function exposeContextualPlan(engine, result) {
   );
 }
 
+export function pickPlayableTerrainPoint(engine, event) {
+  if (
+    !engine?.deployMode ||
+    !engine.terrain?.mesh ||
+    !engine.raycaster ||
+    typeof engine.updatePointerFromEvent !== "function"
+  ) {
+    return null;
+  }
+
+  engine.updatePointerFromEvent(event);
+  const hits = engine.raycaster.intersectObject(engine.terrain.mesh, false);
+  if (!hits.length) return null;
+
+  return { point: hits[0].point, hit: hits[0] };
+}
+
+function installTerrainFirstDeploymentPicking(prototype) {
+  const originalPickWorldPoint = prototype.pickWorldPoint;
+  if (typeof originalPickWorldPoint !== "function") return;
+
+  prototype.pickWorldPoint = function pickContextualWorldPoint(event) {
+    const terrainResult = pickPlayableTerrainPoint(this, event);
+    return terrainResult ?? originalPickWorldPoint.call(this, event);
+  };
+}
+
 /**
  * Installs contextual map generation on the concrete MapEngine class.
  *
@@ -102,6 +129,8 @@ export function installContextualMapEngineGeneration(
     value: true,
     writable: false,
   });
+
+  installTerrainFirstDeploymentPicking(prototype);
 
   prototype.generateMap = async function generateContextualMap(config) {
     const result = await runner(this, config);
