@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { installContextualMapEngineGeneration } from "../src/app/contextualMapEngineIntegration.js";
+import {
+  installContextualMapEngineGeneration,
+  pickPlayableTerrainPoint,
+} from "../src/app/contextualMapEngineIntegration.js";
 
 function contextualResult() {
   return {
@@ -102,6 +105,62 @@ describe("contextual MapEngine integration", () => {
     expect(
       engine.renderer.domElement.dataset.contextualMeasurementsAvailable,
     ).toBe("false");
+  });
+
+  it("uses the authoritative terrain hit while deployment mode is armed", () => {
+    const terrainHit = { point: { x: 12, y: 3, z: -18 } };
+    const engine = {
+      deployMode: "friendly",
+      terrain: { mesh: { name: "terrain" } },
+      raycaster: {
+        intersectObject: vi.fn(() => [terrainHit]),
+      },
+      updatePointerFromEvent: vi.fn(),
+    };
+    const event = { clientX: 400, clientY: 300 };
+
+    expect(pickPlayableTerrainPoint(engine, event)).toEqual({
+      point: terrainHit.point,
+      hit: terrainHit,
+    });
+    expect(engine.updatePointerFromEvent).toHaveBeenCalledWith(event);
+    expect(engine.raycaster.intersectObject).toHaveBeenCalledWith(
+      engine.terrain.mesh,
+      false,
+    );
+  });
+
+  it("wraps world picking so contextual deployment prefers terrain over visual features", () => {
+    const terrainHit = { point: { x: 0, y: 1, z: 0 } };
+    const originalResult = { point: { x: 999, y: 0, z: 999 }, hit: null };
+
+    class TestMapEngine {
+      constructor() {
+        this.deployMode = "friendly";
+        this.terrain = { mesh: {} };
+        this.raycaster = { intersectObject: vi.fn(() => [terrainHit]) };
+        this.updatePointerFromEvent = vi.fn();
+      }
+
+      pickWorldPoint() {
+        return originalResult;
+      }
+    }
+
+    installContextualMapEngineGeneration(TestMapEngine, async () =>
+      contextualResult(),
+    );
+
+    const engine = new TestMapEngine();
+    expect(engine.pickWorldPoint({ clientX: 10, clientY: 20 })).toEqual({
+      point: terrainHit.point,
+      hit: terrainHit,
+    });
+
+    engine.deployMode = null;
+    expect(engine.pickWorldPoint({ clientX: 10, clientY: 20 })).toBe(
+      originalResult,
+    );
   });
 
   it("is idempotent and does not replace an installed runner", async () => {
