@@ -30,10 +30,7 @@ const MAP_DATA = {
 describe("diagnostic map layer filtering", () => {
   it("returns the original payload for normal rendering", () => {
     expect(
-      filterMapDataForDiagnosticLayer(
-        MAP_DATA,
-        DIAGNOSTIC_MAP_LAYER_MODES.ALL,
-      ),
+      filterMapDataForDiagnosticLayer(MAP_DATA, DIAGNOSTIC_MAP_LAYER_MODES.ALL),
     ).toBe(MAP_DATA);
   });
 
@@ -52,17 +49,10 @@ describe("diagnostic map layer filtering", () => {
       DIAGNOSTIC_MAP_LAYER_MODES.WATER_ONLY,
     );
 
-    expect(result.elements.map((element) => element.id)).toEqual([
-      1,
-      2,
-      3,
-      10,
-    ]);
+    expect(result.elements.map((element) => element.id)).toEqual([1, 2, 3, 10]);
   });
 
   it("falls back to the unmodified payload for unknown modes", () => {
-    expect(
-      filterMapDataForDiagnosticLayer(MAP_DATA, "unknown"),
-    ).toBe(MAP_DATA);
+    expect(filterMapDataForDiagnosticLayer(MAP_DATA, "unknown")).toBe(MAP_DATA);
   });
 });
