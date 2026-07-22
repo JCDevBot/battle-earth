@@ -16,6 +16,13 @@ function contextualResult() {
         showOuterSkirt: false,
       },
     },
+    contextualDiagnostics: {
+      renderedAreaMultiplier: 1.96,
+      renderedAreaIncreasePercent: 96,
+      generationDurationMs: 842,
+      memoryDeltaBytes: 4096,
+      measurementsAvailable: true,
+    },
   };
 }
 
@@ -36,9 +43,12 @@ describe("contextual MapEngine integration", () => {
     expect(runner).toHaveBeenCalledOnce();
     expect(runner).toHaveBeenCalledWith(engine, config);
     expect(engine.lastContextualGenerationPlan).toBe(result.plan);
+    expect(engine.lastContextualGenerationDiagnostics).toBe(
+      result.contextualDiagnostics,
+    );
   });
 
-  it("exposes deterministic contextual dimensions on the renderer canvas", async () => {
+  it("exposes deterministic contextual dimensions and measurements on the renderer canvas", async () => {
     class TestMapEngine {
       constructor() {
         this.renderer = { domElement: { dataset: {} } };
@@ -58,7 +68,38 @@ describe("contextual MapEngine integration", () => {
       renderWidthMeters: "490",
       renderDepthMeters: "490",
       outerSkirtVisible: "false",
+      renderedAreaMultiplier: "1.96",
+      renderedAreaIncreasePercent: "96",
+      generationDurationMs: "842",
+      memoryDeltaBytes: "4096",
+      contextualMeasurementsAvailable: "true",
     });
+  });
+
+  it("omits unavailable optional runtime measurements", async () => {
+    class TestMapEngine {
+      constructor() {
+        this.renderer = { domElement: { dataset: {} } };
+      }
+    }
+    const result = contextualResult();
+    result.contextualDiagnostics = {
+      ...result.contextualDiagnostics,
+      generationDurationMs: null,
+      memoryDeltaBytes: null,
+      measurementsAvailable: false,
+    };
+
+    installContextualMapEngineGeneration(TestMapEngine, async () => result);
+
+    const engine = new TestMapEngine();
+    await engine.generateMap({});
+
+    expect(engine.renderer.domElement.dataset.generationDurationMs).toBeUndefined();
+    expect(engine.renderer.domElement.dataset.memoryDeltaBytes).toBeUndefined();
+    expect(
+      engine.renderer.domElement.dataset.contextualMeasurementsAvailable,
+    ).toBe("false");
   });
 
   it("is idempotent and does not replace an installed runner", async () => {
