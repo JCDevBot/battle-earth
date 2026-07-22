@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { summarizeContextualFeatureBounds } from "./contextualFeatureDiagnostics.js";
 import { applyContextualCameraFrame } from "./contextualCameraFraming.js";
 import { runContextualMapGeneration } from "./runContextualMapGeneration.js";
 
@@ -34,6 +35,17 @@ function exposeContextualPlan(engine, result) {
 
   engine.lastContextualGenerationPlan = plan;
   engine.lastContextualGenerationDiagnostics = result.contextualDiagnostics ?? null;
+  const featureDiagnostics = summarizeContextualFeatureBounds(plan, {
+    water: engine.builder?.waterPolygons ?? [],
+  });
+  engine.lastContextualFeatureDiagnostics = featureDiagnostics;
+
+  if (featureDiagnostics.hasSuspiciousGeometry) {
+    engine.log?.(
+      `Context geometry warning: ${featureDiagnostics.invalid} suspicious water feature${featureDiagnostics.invalid === 1 ? "" : "s"}.`,
+      "warn",
+    );
+  }
 
   const canvas = engine.renderer?.domElement;
   if (!canvas?.dataset) return;
@@ -45,6 +57,19 @@ function exposeContextualPlan(engine, result) {
   canvas.dataset.renderDepthMeters = String(plan.visualFeatures.mapDepthMeters);
   canvas.dataset.outerSkirtVisible = String(
     plan.boundsManager.showOuterSkirt,
+  );
+  canvas.dataset.contextualSuspiciousGeometry = String(
+    featureDiagnostics.hasSuspiciousGeometry,
+  );
+  setDatasetNumber(
+    canvas.dataset,
+    "contextualWaterFeaturesInspected",
+    featureDiagnostics.inspected,
+  );
+  setDatasetNumber(
+    canvas.dataset,
+    "contextualWaterFeaturesInvalid",
+    featureDiagnostics.invalid,
   );
 
   const diagnostics = result.contextualDiagnostics;
