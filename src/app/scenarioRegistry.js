@@ -12,6 +12,9 @@ export const SCENARIO_IDS = Object.freeze({
   REPLICA_BATTLE_NO_CONTEXT: "replica-battle-no-context",
   REPLICA_BATTLE_TERRAIN_ONLY: "replica-battle-terrain-only",
   REPLICA_BATTLE_WATER_ONLY: "replica-battle-water-only",
+  REPLICA_BATTLE_ROADS_ONLY: "replica-battle-roads-only",
+  REPLICA_BATTLE_BUILDINGS_ONLY: "replica-battle-buildings-only",
+  REPLICA_BATTLE_VEGETATION_ONLY: "replica-battle-vegetation-only",
 });
 
 export const SCENARIO_START_TYPES = Object.freeze({
@@ -55,6 +58,30 @@ const SCENARIOS = Object.freeze([
     label: "Replica diagnostic · water only",
     description:
       "Render contextual terrain plus sourced water geometry to isolate malformed water extents.",
+    startType: SCENARIO_START_TYPES.DIRECT_LOCATION,
+    testLab: true,
+  }),
+  Object.freeze({
+    id: SCENARIO_IDS.REPLICA_BATTLE_ROADS_ONLY,
+    label: "Replica diagnostic · roads only",
+    description:
+      "Render contextual terrain plus sourced road and rail geometry to isolate projection and clipping failures.",
+    startType: SCENARIO_START_TYPES.DIRECT_LOCATION,
+    testLab: true,
+  }),
+  Object.freeze({
+    id: SCENARIO_IDS.REPLICA_BATTLE_BUILDINGS_ONLY,
+    label: "Replica diagnostic · buildings only",
+    description:
+      "Render contextual terrain plus sourced buildings to isolate footprint, height, and placement failures.",
+    startType: SCENARIO_START_TYPES.DIRECT_LOCATION,
+    testLab: true,
+  }),
+  Object.freeze({
+    id: SCENARIO_IDS.REPLICA_BATTLE_VEGETATION_ONLY,
+    label: "Replica diagnostic · vegetation only",
+    description:
+      "Render contextual terrain plus sourced vegetation to isolate canopy and tree-placement failures.",
     startType: SCENARIO_START_TYPES.DIRECT_LOCATION,
     testLab: true,
   }),
@@ -118,6 +145,14 @@ function createReplicaBattleLocation({
   };
 }
 
+const DIAGNOSTIC_SCENARIO_MODES = Object.freeze({
+  [SCENARIO_IDS.REPLICA_BATTLE_TERRAIN_ONLY]: "terrain-only",
+  [SCENARIO_IDS.REPLICA_BATTLE_WATER_ONLY]: "water-only",
+  [SCENARIO_IDS.REPLICA_BATTLE_ROADS_ONLY]: "roads-only",
+  [SCENARIO_IDS.REPLICA_BATTLE_BUILDINGS_ONLY]: "buildings-only",
+  [SCENARIO_IDS.REPLICA_BATTLE_VEGETATION_ONLY]: "vegetation-only",
+});
+
 export function createScenarioLocation(id) {
   if (id === SCENARIO_IDS.PROTOTYPE_SMOKE) {
     return createPrototypeSmokeLocation();
@@ -131,17 +166,11 @@ export function createScenarioLocation(id) {
     return createReplicaBattleLocation({ contextEnabled: false });
   }
 
-  if (id === SCENARIO_IDS.REPLICA_BATTLE_TERRAIN_ONLY) {
+  const diagnosticLayerMode = DIAGNOSTIC_SCENARIO_MODES[id];
+  if (diagnosticLayerMode) {
     return createReplicaBattleLocation({
       contextEnabled: true,
-      diagnosticLayerMode: "terrain-only",
-    });
-  }
-
-  if (id === SCENARIO_IDS.REPLICA_BATTLE_WATER_ONLY) {
-    return createReplicaBattleLocation({
-      contextEnabled: true,
-      diagnosticLayerMode: "water-only",
+      diagnosticLayerMode,
     });
   }
 
