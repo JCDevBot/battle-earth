@@ -145,13 +145,6 @@ export async function runContextualMapGeneration(engine, config = {}) {
       pois: initialObjectiveSources,
     });
 
-    engine.callbacks.onGenerationStats?.({
-      ...(engine.builder.getGenerationDiagnostics?.() ?? {}),
-      contextual: createContextualGenerationDiagnostics(
-        plan,
-        measurement.finish(),
-      ),
-    });
     if (config.vegetationSource === "planetaryNaip") {
       engine.callbacks.onCanopyStats?.({
         ...(externalCanopy ?? {}),
@@ -208,9 +201,24 @@ export async function runContextualMapGeneration(engine, config = {}) {
       plan.camera.mapWidthMeters,
       plan.camera.mapDepthMeters,
     );
+
+    const contextualDiagnostics = createContextualGenerationDiagnostics(
+      plan,
+      measurement.finish(),
+    );
+    engine.callbacks.onGenerationStats?.({
+      ...(engine.builder.getGenerationDiagnostics?.() ?? {}),
+      contextual: contextualDiagnostics,
+    });
     engine.log("Map generated.", "success");
 
-    return Object.freeze({ plan, mapData, analysis, externalCanopy });
+    return Object.freeze({
+      plan,
+      mapData,
+      analysis,
+      externalCanopy,
+      contextualDiagnostics,
+    });
   } catch (error) {
     console.error(error);
     engine.log(error.message ?? "Map generation failed.", "error");
