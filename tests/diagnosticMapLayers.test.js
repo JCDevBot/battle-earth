@@ -56,8 +56,6 @@ describe("diagnostic map layer filtering", () => {
   });
 
   it("falls back to the unmodified payload for unknown modes", () => {
-    expect(filterMapDataForDiagnosticLayer(MAP_DATA, "unknown")).toBe(
-      MAP_DATA,
-    );
+    expect(filterMapDataForDiagnosticLayer(MAP_DATA, "unknown")).toBe(MAP_DATA);
   });
 });
