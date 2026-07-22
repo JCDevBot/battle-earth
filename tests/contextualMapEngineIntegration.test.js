@@ -107,11 +107,12 @@ describe("contextual MapEngine integration", () => {
     ).toBe("false");
   });
 
-  it("uses the authoritative terrain hit while deployment mode is armed", () => {
+  it("uses the authoritative playable terrain hit while deployment mode is armed", () => {
     const terrainHit = { point: { x: 12, y: 3, z: -18 } };
     const engine = {
       deployMode: "friendly",
       terrain: { mesh: { name: "terrain" } },
+      bounds: { containsPoint: vi.fn(() => true) },
       raycaster: {
         intersectObject: vi.fn(() => [terrainHit]),
       },
@@ -128,6 +129,44 @@ describe("contextual MapEngine integration", () => {
       engine.terrain.mesh,
       false,
     );
+    expect(engine.bounds.containsPoint).toHaveBeenCalledWith(
+      terrainHit.point,
+      4,
+    );
+  });
+
+  it("rejects contextual terrain hits outside the playable battlefield", () => {
+    const outsideHit = { point: { x: 220, y: 2, z: 0 } };
+    const insideHit = { point: { x: 120, y: 2, z: 0 } };
+    const engine = {
+      deployMode: "friendly",
+      terrain: { mesh: {} },
+      bounds: {
+        containsPoint: vi.fn((point) => point === insideHit.point),
+      },
+      raycaster: {
+        intersectObject: vi.fn(() => [outsideHit, insideHit]),
+      },
+      updatePointerFromEvent: vi.fn(),
+    };
+
+    expect(pickPlayableTerrainPoint(engine, {})).toEqual({
+      point: insideHit.point,
+      hit: insideHit,
+    });
+    expect(engine.bounds.containsPoint).toHaveBeenNthCalledWith(
+      1,
+      outsideHit.point,
+      4,
+    );
+    expect(engine.bounds.containsPoint).toHaveBeenNthCalledWith(
+      2,
+      insideHit.point,
+      4,
+    );
+
+    engine.bounds.containsPoint.mockReturnValue(false);
+    expect(pickPlayableTerrainPoint(engine, {})).toBeNull();
   });
 
   it("wraps world picking so contextual deployment prefers terrain over visual features", () => {
@@ -138,6 +177,7 @@ describe("contextual MapEngine integration", () => {
       constructor() {
         this.deployMode = "friendly";
         this.terrain = { mesh: {} };
+        this.bounds = { containsPoint: vi.fn(() => true) };
         this.raycaster = { intersectObject: vi.fn(() => [terrainHit]) };
         this.updatePointerFromEvent = vi.fn();
       }
