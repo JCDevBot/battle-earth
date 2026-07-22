@@ -1,4 +1,38 @@
 import { createContextualMapPlan } from "./contextualMapPlan.js";
+import { boundsFromCenter } from "../map/utils/geo.js";
+
+function createUnbufferedMapPlan({ lat, lon, mapWidthMeters, mapDepthMeters }) {
+  const playableSizeMeters = Math.max(mapWidthMeters, mapDepthMeters);
+  const playableBounds = Object.freeze({
+    minX: -mapWidthMeters / 2,
+    maxX: mapWidthMeters / 2,
+    minZ: -mapDepthMeters / 2,
+    maxZ: mapDepthMeters / 2,
+  });
+
+  return Object.freeze({
+    center: Object.freeze({ lat: Number(lat), lon: Number(lon) }),
+    playableWidthMeters: mapWidthMeters,
+    playableDepthMeters: mapDepthMeters,
+    renderedWidthMeters: mapWidthMeters,
+    renderedDepthMeters: mapDepthMeters,
+    bufferXMeters: 0,
+    bufferZMeters: 0,
+    playableBounds,
+    renderedContextBounds: playableBounds,
+    playableSizeMeters,
+    renderedSizeMeters: playableSizeMeters,
+    sourceQueryBounds: Object.freeze(
+      boundsFromCenter(
+        Number(lat),
+        Number(lon),
+        playableSizeMeters,
+        mapWidthMeters,
+        mapDepthMeters,
+      ),
+    ),
+  });
+}
 
 /**
  * Converts the tactical map request into two explicit configuration domains:
@@ -14,16 +48,24 @@ export function createContextualGenerationConfig(config = {}) {
     Number(config.mapWidthMeters) || Number(config.sizeMeters) || 1000;
   const mapDepthMeters =
     Number(config.mapDepthMeters) || Number(config.sizeMeters) || mapWidthMeters;
+  const contextEnabled = config.contextEnabled !== false;
 
-  const plan = createContextualMapPlan({
-    lat: config.lat,
-    lon: config.lon,
-    mapWidthMeters,
-    mapDepthMeters,
-    bufferRatio: config.contextBufferRatio,
-    minBufferMeters: config.contextMinBufferMeters,
-    maxBufferMeters: config.contextMaxBufferMeters,
-  });
+  const plan = contextEnabled
+    ? createContextualMapPlan({
+        lat: config.lat,
+        lon: config.lon,
+        mapWidthMeters,
+        mapDepthMeters,
+        bufferRatio: config.contextBufferRatio,
+        minBufferMeters: config.contextMinBufferMeters,
+        maxBufferMeters: config.contextMaxBufferMeters,
+      })
+    : createUnbufferedMapPlan({
+        lat: config.lat,
+        lon: config.lon,
+        mapWidthMeters,
+        mapDepthMeters,
+      });
 
   return Object.freeze({
     plan,
@@ -33,7 +75,7 @@ export function createContextualGenerationConfig(config = {}) {
       mapDepthMeters: plan.renderedDepthMeters,
       sourceQueryBounds: plan.sourceQueryBounds,
       canopySizeMeters: plan.renderedSizeMeters,
-      showOuterSkirt: false,
+      showOuterSkirt: !contextEnabled,
     }),
     gameplay: Object.freeze({
       sizeMeters: plan.playableSizeMeters,
@@ -42,7 +84,7 @@ export function createContextualGenerationConfig(config = {}) {
       bounds: plan.playableBounds,
     }),
     diagnostics: Object.freeze({
-      contextEnabled: true,
+      contextEnabled,
       bufferXMeters: plan.bufferXMeters,
       bufferZMeters: plan.bufferZMeters,
       renderedAreaRatio:
