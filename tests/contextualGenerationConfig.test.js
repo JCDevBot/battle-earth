@@ -29,9 +29,37 @@ describe("contextual generation configuration", () => {
     expect(config.render.sizeMeters).toBe(1632);
     expect(config.render.canopySizeMeters).toBe(1632);
     expect(config.render.showOuterSkirt).toBe(false);
+    expect(config.diagnostics.contextEnabled).toBe(true);
     expect(config.diagnostics.bufferXMeters).toBe(144);
     expect(config.diagnostics.bufferZMeters).toBe(216);
     expect(config.diagnostics.renderedAreaRatio).toBeGreaterThan(1);
+  });
+
+  it("supports a deterministic overscan-off comparison without expanding gameplay", () => {
+    const config = createContextualGenerationConfig({
+      lat: 44.9537,
+      lon: -93.09,
+      mapWidthMeters: 350,
+      mapDepthMeters: 350,
+      contextEnabled: false,
+    });
+
+    expect(config.render).toEqual({
+      sizeMeters: 350,
+      mapWidthMeters: 350,
+      mapDepthMeters: 350,
+      sourceQueryBounds: config.plan.sourceQueryBounds,
+      canopySizeMeters: 350,
+      showOuterSkirt: true,
+    });
+    expect(config.gameplay.mapWidthMeters).toBe(350);
+    expect(config.gameplay.mapDepthMeters).toBe(350);
+    expect(config.diagnostics).toEqual({
+      contextEnabled: false,
+      bufferXMeters: 0,
+      bufferZMeters: 0,
+      renderedAreaRatio: 1,
+    });
   });
 
   it("uses tactical size as the fallback for both playable dimensions", () => {
