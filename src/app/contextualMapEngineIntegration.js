@@ -102,8 +102,11 @@ function installTerrainFirstDeploymentPicking(prototype) {
   if (typeof originalPickWorldPoint !== "function") return;
 
   prototype.pickWorldPoint = function pickContextualWorldPoint(event) {
-    const terrainResult = pickPlayableTerrainPoint(this, event);
-    return terrainResult ?? originalPickWorldPoint.call(this, event);
+    if (!this.deployMode) {
+      return originalPickWorldPoint.call(this, event);
+    }
+
+    return pickPlayableTerrainPoint(this, event);
   };
 }
 
