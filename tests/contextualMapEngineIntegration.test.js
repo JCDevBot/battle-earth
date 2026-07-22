@@ -95,7 +95,9 @@ describe("contextual MapEngine integration", () => {
     const engine = new TestMapEngine();
     await engine.generateMap({});
 
-    expect(engine.renderer.domElement.dataset.generationDurationMs).toBeUndefined();
+    expect(
+      engine.renderer.domElement.dataset.generationDurationMs,
+    ).toBeUndefined();
     expect(engine.renderer.domElement.dataset.memoryDeltaBytes).toBeUndefined();
     expect(
       engine.renderer.domElement.dataset.contextualMeasurementsAvailable,
