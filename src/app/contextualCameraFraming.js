@@ -16,8 +16,8 @@ export function createContextualCameraFrame(plan) {
 
   return Object.freeze({
     x: 0,
-    y: Math.max(150, maxDimension * 0.42),
-    z: Math.max(220, depthMeters * 0.58),
+    y: Math.max(180, maxDimension * 0.5),
+    z: Math.max(260, depthMeters * 0.68),
     targetX: 0,
     targetY: 0,
     targetZ: 0,
