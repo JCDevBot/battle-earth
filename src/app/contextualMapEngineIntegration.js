@@ -5,11 +5,20 @@ const INSTALL_MARKER = Symbol.for(
   "battle-earth.contextual-map-generation-installed",
 );
 
+function setDatasetNumber(dataset, key, value) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+    delete dataset[key];
+    return;
+  }
+  dataset[key] = String(value);
+}
+
 function exposeContextualPlan(engine, result) {
   const plan = result?.plan;
   if (!plan) return;
 
   engine.lastContextualGenerationPlan = plan;
+  engine.lastContextualGenerationDiagnostics = result.contextualDiagnostics ?? null;
 
   const canvas = engine.renderer?.domElement;
   if (!canvas?.dataset) return;
@@ -21,6 +30,33 @@ function exposeContextualPlan(engine, result) {
   canvas.dataset.renderDepthMeters = String(plan.visualFeatures.mapDepthMeters);
   canvas.dataset.outerSkirtVisible = String(
     plan.boundsManager.showOuterSkirt,
+  );
+
+  const diagnostics = result.contextualDiagnostics;
+  if (!diagnostics) return;
+
+  setDatasetNumber(
+    canvas.dataset,
+    "renderedAreaMultiplier",
+    diagnostics.renderedAreaMultiplier,
+  );
+  setDatasetNumber(
+    canvas.dataset,
+    "renderedAreaIncreasePercent",
+    diagnostics.renderedAreaIncreasePercent,
+  );
+  setDatasetNumber(
+    canvas.dataset,
+    "generationDurationMs",
+    diagnostics.generationDurationMs,
+  );
+  setDatasetNumber(
+    canvas.dataset,
+    "memoryDeltaBytes",
+    diagnostics.memoryDeltaBytes,
+  );
+  canvas.dataset.contextualMeasurementsAvailable = String(
+    diagnostics.measurementsAvailable,
   );
 }
 
