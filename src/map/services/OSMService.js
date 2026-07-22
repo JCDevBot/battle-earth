@@ -7,13 +7,19 @@ function reverseCopy(values) {
 
 function joinMemberWays(members, wayIndex) {
   const remaining = members
-    .map((member) => wayIndex.get(member.ref)?.nodes)
-    .filter((nodes) => Array.isArray(nodes) && nodes.length >= 2)
-    .map((nodes) => [...nodes]);
+    .map((member) => {
+      const nodes = wayIndex.get(member.ref)?.nodes;
+      if (!Array.isArray(nodes) || nodes.length < 2) return null;
+      return { ref: member.ref, nodes: [...nodes] };
+    })
+    .filter(Boolean);
   const rings = [];
+  const consumedRefs = new Set();
 
   while (remaining.length) {
-    const chain = remaining.shift();
+    const first = remaining.shift();
+    const chain = [...first.nodes];
+    const chainRefs = [first.ref];
     let advanced = true;
 
     while (chain[0] !== chain[chain.length - 1] && advanced) {
@@ -23,21 +29,22 @@ function joinMemberWays(members, wayIndex) {
 
       for (let index = 0; index < remaining.length; index++) {
         const candidate = remaining[index];
-        const candidateStart = candidate[0];
-        const candidateEnd = candidate[candidate.length - 1];
+        const candidateStart = candidate.nodes[0];
+        const candidateEnd = candidate.nodes[candidate.nodes.length - 1];
 
         if (candidateStart === chainEnd) {
-          chain.push(...candidate.slice(1));
+          chain.push(...candidate.nodes.slice(1));
         } else if (candidateEnd === chainEnd) {
-          chain.push(...reverseCopy(candidate).slice(1));
+          chain.push(...reverseCopy(candidate.nodes).slice(1));
         } else if (candidateEnd === chainStart) {
-          chain.unshift(...candidate.slice(0, -1));
+          chain.unshift(...candidate.nodes.slice(0, -1));
         } else if (candidateStart === chainStart) {
-          chain.unshift(...reverseCopy(candidate).slice(0, -1));
+          chain.unshift(...reverseCopy(candidate.nodes).slice(0, -1));
         } else {
           continue;
         }
 
+        chainRefs.push(candidate.ref);
         remaining.splice(index, 1);
         advanced = true;
         break;
@@ -46,10 +53,11 @@ function joinMemberWays(members, wayIndex) {
 
     if (chain.length >= 4 && chain[0] === chain[chain.length - 1]) {
       rings.push(chain);
+      for (const ref of chainRefs) consumedRefs.add(ref);
     }
   }
 
-  return rings;
+  return { rings, consumedRefs };
 }
 
 function hasIndependentLinearSemantics(tags = {}) {
@@ -86,7 +94,7 @@ export class OSMService {
     const heightMeters = Math.abs(north - south) * 111139;
     const roundedSize = Math.round(heightMeters / 100) * 100;
 
-    return `map_${profileName}_v4_${centerLat.toFixed(3)}_${centerLon.toFixed(3)}_${roundedSize}`;
+    return `map_${profileName}_v5_${centerLat.toFixed(3)}_${centerLon.toFixed(3)}_${roundedSize}`;
   }
 
   buildQuery(south, west, north, east, profileName = "expanded") {
@@ -206,21 +214,20 @@ export class OSMService {
       const innerMembers = (element.members ?? []).filter(
         (member) => member.type === "way" && member.role === "inner",
       );
-      const outerRings = joinMemberWays(outerMembers, wayIndex);
-      if (!outerRings.length) continue;
+      const outerAssembly = joinMemberWays(outerMembers, wayIndex);
+      if (!outerAssembly.rings.length) continue;
 
-      const innerRings = joinMemberWays(innerMembers, wayIndex);
-      for (const member of [...outerMembers, ...innerMembers]) {
-        consumedMemberRefs.add(member.ref);
-      }
+      const innerAssembly = joinMemberWays(innerMembers, wayIndex);
+      for (const ref of outerAssembly.consumedRefs) consumedMemberRefs.add(ref);
+      for (const ref of innerAssembly.consumedRefs) consumedMemberRefs.add(ref);
 
-      outerRings.forEach((nodes, ringIndex) => {
+      outerAssembly.rings.forEach((nodes, ringIndex) => {
         syntheticWays.push({
           type: "way",
           id: -(element.id * 1000 + ringIndex + 1),
           tags: { ...element.tags },
           nodes,
-          innerRings,
+          innerRings: innerAssembly.rings,
         });
       });
     }
