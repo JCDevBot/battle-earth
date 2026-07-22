@@ -75,7 +75,7 @@ export class OSMService {
     const heightMeters = Math.abs(north - south) * 111139;
     const roundedSize = Math.round(heightMeters / 100) * 100;
 
-    return `map_${profileName}_v2_${centerLat.toFixed(3)}_${centerLon.toFixed(3)}_${roundedSize}`;
+    return `map_${profileName}_v3_${centerLat.toFixed(3)}_${centerLon.toFixed(3)}_${roundedSize}`;
   }
 
   buildQuery(south, west, north, east, profileName = "expanded") {
