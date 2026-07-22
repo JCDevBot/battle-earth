@@ -104,11 +104,7 @@ jobs:
         id: format
         run: |
           set -o pipefail
-          if ! npm run format:check 2>&1 | tee format-report.txt; then
-            npx prettier --write tests/diagnosticMapLayers.test.js
-            git diff -- tests/diagnosticMapLayers.test.js | tee -a format-report.txt
-            exit 1
-          fi
+          npm run format:check 2>&1 | tee format-report.txt
 
       - name: Upload formatting diagnostics
         if: failure() && steps.format.outcome == 'failure'
