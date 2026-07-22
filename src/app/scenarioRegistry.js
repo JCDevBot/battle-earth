@@ -9,6 +9,7 @@ export const SCENARIO_IDS = Object.freeze({
   PROTOTYPE_GLOBE_SMOKE: "prototype-globe-smoke",
   VERTICAL_SLICE_FULL: "vertical-slice-full",
   REPLICA_BATTLE: "replica-battle",
+  REPLICA_BATTLE_NO_CONTEXT: "replica-battle-no-context",
 });
 
 export const SCENARIO_START_TYPES = Object.freeze({
@@ -32,6 +33,14 @@ const SCENARIOS = Object.freeze([
     testLab: true,
   }),
   Object.freeze({
+    id: SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT,
+    label: "Replica battle · overscan off",
+    description:
+      "Open the same benchmark with legacy playable-only rendering for A/B diagnosis.",
+    startType: SCENARIO_START_TYPES.DIRECT_LOCATION,
+    testLab: true,
+  }),
+  Object.freeze({
     id: SCENARIO_IDS.PROTOTYPE_SMOKE,
     label: "Prototype tactical smoke",
     description: "Direct deterministic tactical entry used by browser validation.",
@@ -41,13 +50,16 @@ const SCENARIOS = Object.freeze([
   Object.freeze({
     id: SCENARIO_IDS.PROTOTYPE_GLOBE_SMOKE,
     label: "Prototype globe smoke",
-    description: "Begin at Earth view and normalize the selected location for smoke testing.",
+    description:
+      "Begin at Earth view and normalize the selected location for smoke testing.",
     startType: SCENARIO_START_TYPES.GLOBE,
     testLab: false,
   }),
 ]);
 
-const SCENARIO_BY_ID = new Map(SCENARIOS.map((scenario) => [scenario.id, scenario]));
+const SCENARIO_BY_ID = new Map(
+  SCENARIOS.map((scenario) => [scenario.id, scenario]),
+);
 
 export function listScenarios({ testLabOnly = false } = {}) {
   return SCENARIOS.filter((scenario) => !testLabOnly || scenario.testLab);
@@ -66,26 +78,35 @@ export function isTestLabEnabled(search = "", isDevelopment = false) {
   return isDevelopment || params.get("dev") === "1";
 }
 
+function createReplicaBattleLocation({ contextEnabled }) {
+  const session = createDevelopmentBattleSession();
+  const location = createPrototypeSmokeLocation();
+  return {
+    ...location,
+    lat: session.geographicContext.location.lat,
+    lon: session.geographicContext.location.lon,
+    battleRequest: {
+      ...location.battleRequest,
+      selectedName: session.geographicContext.name,
+      region: session.geographicContext.hierarchy.join(" / "),
+      seed: session.seed,
+      contextEnabled,
+      battleSession: serializeBattleSession(session),
+    },
+  };
+}
+
 export function createScenarioLocation(id) {
   if (id === SCENARIO_IDS.PROTOTYPE_SMOKE) {
     return createPrototypeSmokeLocation();
   }
 
   if (id === SCENARIO_IDS.REPLICA_BATTLE) {
-    const session = createDevelopmentBattleSession();
-    const location = createPrototypeSmokeLocation();
-    return {
-      ...location,
-      lat: session.geographicContext.location.lat,
-      lon: session.geographicContext.location.lon,
-      battleRequest: {
-        ...location.battleRequest,
-        selectedName: session.geographicContext.name,
-        region: session.geographicContext.hierarchy.join(" / "),
-        seed: session.seed,
-        battleSession: serializeBattleSession(session),
-      },
-    };
+    return createReplicaBattleLocation({ contextEnabled: true });
+  }
+
+  if (id === SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT) {
+    return createReplicaBattleLocation({ contextEnabled: false });
   }
 
   return null;
