@@ -15,7 +15,7 @@ function createService() {
 describe("OSMService", () => {
   it("uses a new cache namespace for corrected relation assembly", () => {
     expect(createService().getCacheKey(44, -94, 45, -93, "expanded")).toContain(
-      "expanded_v4_",
+      "expanded_v5_",
     );
   });
 });
@@ -166,6 +166,40 @@ describe("OSMService.resolveRelations", () => {
     ).toEqual([]);
     expect(resolved.elements.some((element) => element.id === 10)).toBe(true);
     expect(resolved.elements.some((element) => element.id === 11)).toBe(true);
+  });
+
+  it("preserves incomplete fragments when another outer ring succeeds", () => {
+    const resolved = createService().resolveRelations({
+      elements: [
+        { type: "way", id: 10, nodes: [1, 2, 3] },
+        { type: "way", id: 11, nodes: [3, 4, 1] },
+        {
+          type: "way",
+          id: 12,
+          nodes: [20, 21, 22],
+          tags: { natural: "water" },
+        },
+        {
+          type: "relation",
+          id: 96,
+          tags: { type: "multipolygon", natural: "water" },
+          members: [
+            { type: "way", ref: 10, role: "outer" },
+            { type: "way", ref: 11, role: "outer" },
+            { type: "way", ref: 12, role: "outer" },
+          ],
+        },
+      ],
+    });
+
+    expect(
+      resolved.elements.filter(
+        (element) => element.type === "way" && element.id < 0,
+      ),
+    ).toHaveLength(1);
+    expect(resolved.elements.some((element) => element.id === 10)).toBe(false);
+    expect(resolved.elements.some((element) => element.id === 11)).toBe(false);
+    expect(resolved.elements.some((element) => element.id === 12)).toBe(true);
   });
 
   it("assembles inner members as closed holes", () => {
