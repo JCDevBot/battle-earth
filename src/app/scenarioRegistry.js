@@ -10,6 +10,8 @@ export const SCENARIO_IDS = Object.freeze({
   VERTICAL_SLICE_FULL: "vertical-slice-full",
   REPLICA_BATTLE: "replica-battle",
   REPLICA_BATTLE_NO_CONTEXT: "replica-battle-no-context",
+  REPLICA_BATTLE_TERRAIN_ONLY: "replica-battle-terrain-only",
+  REPLICA_BATTLE_WATER_ONLY: "replica-battle-water-only",
 });
 
 export const SCENARIO_START_TYPES = Object.freeze({
@@ -37,6 +39,22 @@ const SCENARIOS = Object.freeze([
     label: "Replica battle · overscan off",
     description:
       "Open the same benchmark with legacy playable-only rendering for A/B diagnosis.",
+    startType: SCENARIO_START_TYPES.DIRECT_LOCATION,
+    testLab: true,
+  }),
+  Object.freeze({
+    id: SCENARIO_IDS.REPLICA_BATTLE_TERRAIN_ONLY,
+    label: "Replica diagnostic · terrain only",
+    description:
+      "Render contextual terrain without OSM feature meshes to isolate ground coverage and material failures.",
+    startType: SCENARIO_START_TYPES.DIRECT_LOCATION,
+    testLab: true,
+  }),
+  Object.freeze({
+    id: SCENARIO_IDS.REPLICA_BATTLE_WATER_ONLY,
+    label: "Replica diagnostic · water only",
+    description:
+      "Render contextual terrain plus sourced water geometry to isolate malformed water extents.",
     startType: SCENARIO_START_TYPES.DIRECT_LOCATION,
     testLab: true,
   }),
@@ -78,7 +96,10 @@ export function isTestLabEnabled(search = "", isDevelopment = false) {
   return isDevelopment || params.get("dev") === "1";
 }
 
-function createReplicaBattleLocation({ contextEnabled }) {
+function createReplicaBattleLocation({
+  contextEnabled,
+  diagnosticLayerMode = "all",
+}) {
   const session = createDevelopmentBattleSession();
   const location = createPrototypeSmokeLocation();
   return {
@@ -91,6 +112,7 @@ function createReplicaBattleLocation({ contextEnabled }) {
       region: session.geographicContext.hierarchy.join(" / "),
       seed: session.seed,
       contextEnabled,
+      diagnosticLayerMode,
       battleSession: serializeBattleSession(session),
     },
   };
@@ -107,6 +129,20 @@ export function createScenarioLocation(id) {
 
   if (id === SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT) {
     return createReplicaBattleLocation({ contextEnabled: false });
+  }
+
+  if (id === SCENARIO_IDS.REPLICA_BATTLE_TERRAIN_ONLY) {
+    return createReplicaBattleLocation({
+      contextEnabled: true,
+      diagnosticLayerMode: "terrain-only",
+    });
+  }
+
+  if (id === SCENARIO_IDS.REPLICA_BATTLE_WATER_ONLY) {
+    return createReplicaBattleLocation({
+      contextEnabled: true,
+      diagnosticLayerMode: "water-only",
+    });
   }
 
   return null;
