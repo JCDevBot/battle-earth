@@ -18,6 +18,7 @@ export const PROTOTYPE_SMOKE_SCENARIO = Object.freeze({
       sizeMeters: 350,
       seed: 1,
       useRealTerrain: false,
+      contextEnabled: false,
       sandbox: Object.freeze({
         enabled: true,
         allowBothSides: true,
