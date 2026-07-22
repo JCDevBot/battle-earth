@@ -186,6 +186,13 @@ try {
     renderWidth: Number(element.dataset.renderWidthMeters),
     renderDepth: Number(element.dataset.renderDepthMeters),
     outerSkirtVisible: element.dataset.outerSkirtVisible,
+    renderedAreaMultiplier: Number(element.dataset.renderedAreaMultiplier),
+    renderedAreaIncreasePercent: Number(
+      element.dataset.renderedAreaIncreasePercent,
+    ),
+    generationDurationMs: Number(element.dataset.generationDurationMs),
+    measurementsAvailable:
+      element.dataset.contextualMeasurementsAvailable === "true",
   }));
 
   if (contextual.status !== "ready") {
@@ -201,6 +208,22 @@ try {
   }
   if (contextual.outerSkirtVisible !== "false") {
     throw new Error("The legacy flat outer skirt remained enabled.");
+  }
+  if (
+    !(contextual.renderedAreaMultiplier > 1) ||
+    !(contextual.renderedAreaIncreasePercent > 0)
+  ) {
+    throw new Error(
+      `Contextual area impact was not reported: ${JSON.stringify(contextual)}`,
+    );
+  }
+  if (
+    !contextual.measurementsAvailable ||
+    !(contextual.generationDurationMs >= 0)
+  ) {
+    throw new Error(
+      `Contextual runtime measurement was unavailable: ${JSON.stringify(contextual)}`,
+    );
   }
 
   const friendlyUnit = await deployFriendlySquad(canvas);
