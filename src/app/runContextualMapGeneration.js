@@ -22,6 +22,8 @@ export async function runContextualMapGeneration(engine, config = {}) {
   const plan = createMapEngineGenerationPlan(config);
   const measurement = beginContextualRuntimeMeasurement();
   const groundHeight = heightReader(engine);
+  const diagnosticLayerMode =
+    config.diagnosticLayerMode ?? config.battleRequest?.diagnosticLayerMode;
 
   engine.callbacks.onLoadingChange?.(true);
   try {
@@ -68,13 +70,10 @@ export async function runContextualMapGeneration(engine, config = {}) {
 
     const mapData = filterMapDataForDiagnosticLayer(
       sourceMapData,
-      config.diagnosticLayerMode,
+      diagnosticLayerMode,
     );
-    if (config.diagnosticLayerMode && config.diagnosticLayerMode !== "all") {
-      engine.log(
-        `Diagnostic layer mode: ${config.diagnosticLayerMode}.`,
-        "warn",
-      );
+    if (diagnosticLayerMode && diagnosticLayerMode !== "all") {
+      engine.log(`Diagnostic layer mode: ${diagnosticLayerMode}.`, "warn");
     }
 
     const analysis = analyzeOsmData(mapData);
@@ -221,7 +220,7 @@ export async function runContextualMapGeneration(engine, config = {}) {
     engine.callbacks.onGenerationStats?.({
       ...(engine.builder.getGenerationDiagnostics?.() ?? {}),
       contextual: contextualDiagnostics,
-      diagnosticLayerMode: config.diagnosticLayerMode ?? "all",
+      diagnosticLayerMode: diagnosticLayerMode ?? "all",
     });
     engine.log("Map generated.", "success");
 
