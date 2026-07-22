@@ -20,6 +20,9 @@ describe("scenario registry", () => {
       SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT,
       SCENARIO_IDS.REPLICA_BATTLE_TERRAIN_ONLY,
       SCENARIO_IDS.REPLICA_BATTLE_WATER_ONLY,
+      SCENARIO_IDS.REPLICA_BATTLE_ROADS_ONLY,
+      SCENARIO_IDS.REPLICA_BATTLE_BUILDINGS_ONLY,
+      SCENARIO_IDS.REPLICA_BATTLE_VEGETATION_ONLY,
     ]);
     expect(
       scenarios.every((scenario) =>
@@ -74,29 +77,31 @@ describe("scenario registry", () => {
     });
   });
 
-  it("creates matched terrain-only and water-only diagnostics", () => {
-    const terrainOnly = createScenarioLocation(
-      SCENARIO_IDS.REPLICA_BATTLE_TERRAIN_ONLY,
-    );
-    const waterOnly = createScenarioLocation(
-      SCENARIO_IDS.REPLICA_BATTLE_WATER_ONLY,
-    );
+  it("creates matched sequential map-layer diagnostics", () => {
+    const expectedModes = new Map([
+      [SCENARIO_IDS.REPLICA_BATTLE_TERRAIN_ONLY, "terrain-only"],
+      [SCENARIO_IDS.REPLICA_BATTLE_WATER_ONLY, "water-only"],
+      [SCENARIO_IDS.REPLICA_BATTLE_ROADS_ONLY, "roads-only"],
+      [SCENARIO_IDS.REPLICA_BATTLE_BUILDINGS_ONLY, "buildings-only"],
+      [SCENARIO_IDS.REPLICA_BATTLE_VEGETATION_ONLY, "vegetation-only"],
+    ]);
+    const benchmark = createScenarioLocation(SCENARIO_IDS.REPLICA_BATTLE);
 
-    expect(terrainOnly.battleRequest).toMatchObject({
-      contextEnabled: true,
-      diagnosticLayerMode: "terrain-only",
-    });
-    expect(waterOnly).toMatchObject({
-      lat: terrainOnly.lat,
-      lon: terrainOnly.lon,
-      sizeMeters: terrainOnly.sizeMeters,
-    });
-    expect(waterOnly.battleRequest).toMatchObject({
-      selectedName: terrainOnly.battleRequest.selectedName,
-      seed: terrainOnly.battleRequest.seed,
-      contextEnabled: true,
-      diagnosticLayerMode: "water-only",
-    });
+    for (const [scenarioId, diagnosticLayerMode] of expectedModes) {
+      const location = createScenarioLocation(scenarioId);
+
+      expect(location).toMatchObject({
+        lat: benchmark.lat,
+        lon: benchmark.lon,
+        sizeMeters: benchmark.sizeMeters,
+      });
+      expect(location.battleRequest).toMatchObject({
+        selectedName: benchmark.battleRequest.selectedName,
+        seed: benchmark.battleRequest.seed,
+        contextEnabled: true,
+        diagnosticLayerMode,
+      });
+    }
   });
 
   it("keeps full-flow scenarios at Earth view", () => {
