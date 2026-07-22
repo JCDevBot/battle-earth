@@ -17,6 +17,7 @@ describe("scenario registry", () => {
     expect(scenarios.map((scenario) => scenario.id)).toEqual([
       SCENARIO_IDS.VERTICAL_SLICE_FULL,
       SCENARIO_IDS.REPLICA_BATTLE,
+      SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT,
     ]);
     expect(
       scenarios.every((scenario) =>
@@ -48,6 +49,25 @@ describe("scenario registry", () => {
       "St. Paul / Harriet Island",
     );
     expect(location.battleRequest.seed).toBe(session.seed);
+    expect(location.battleRequest.contextEnabled).toBe(true);
+  });
+
+  it("creates a matched overscan-off benchmark for visual A/B diagnosis", () => {
+    const withContext = createScenarioLocation(SCENARIO_IDS.REPLICA_BATTLE);
+    const withoutContext = createScenarioLocation(
+      SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT,
+    );
+
+    expect(withoutContext).toMatchObject({
+      lat: withContext.lat,
+      lon: withContext.lon,
+      sizeMeters: withContext.sizeMeters,
+    });
+    expect(withoutContext.battleRequest).toMatchObject({
+      selectedName: withContext.battleRequest.selectedName,
+      seed: withContext.battleRequest.seed,
+      contextEnabled: false,
+    });
   });
 
   it("keeps full-flow scenarios at Earth view", () => {
