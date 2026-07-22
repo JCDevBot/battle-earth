@@ -29,25 +29,46 @@ function exposePlayableCenterProbe(engine) {
   setDatasetNumber(canvas.dataset, "playableCenterScreenY", ((1 - point.y) * 0.5) * height);
 }
 
+function exposeFeatureDiagnostics(engine, plan, canvas) {
+  if (!Array.isArray(engine.builder?.waterPolygons)) return;
+
+  const diagnostics = summarizeContextualFeatureBounds(plan, {
+    water: engine.builder.waterPolygons,
+  });
+  engine.lastContextualFeatureDiagnostics = diagnostics;
+
+  if (diagnostics.hasSuspiciousGeometry) {
+    engine.log?.(
+      `Context geometry warning: ${diagnostics.invalid} suspicious water feature${diagnostics.invalid === 1 ? "" : "s"}.`,
+      "warn",
+    );
+  }
+
+  if (!canvas?.dataset) return;
+  canvas.dataset.contextualSuspiciousGeometry = String(
+    diagnostics.hasSuspiciousGeometry,
+  );
+  setDatasetNumber(
+    canvas.dataset,
+    "contextualWaterFeaturesInspected",
+    diagnostics.inspected,
+  );
+  setDatasetNumber(
+    canvas.dataset,
+    "contextualWaterFeaturesInvalid",
+    diagnostics.invalid,
+  );
+}
+
 function exposeContextualPlan(engine, result) {
   const plan = result?.plan;
   if (!plan) return;
 
   engine.lastContextualGenerationPlan = plan;
   engine.lastContextualGenerationDiagnostics = result.contextualDiagnostics ?? null;
-  const featureDiagnostics = summarizeContextualFeatureBounds(plan, {
-    water: engine.builder?.waterPolygons ?? [],
-  });
-  engine.lastContextualFeatureDiagnostics = featureDiagnostics;
-
-  if (featureDiagnostics.hasSuspiciousGeometry) {
-    engine.log?.(
-      `Context geometry warning: ${featureDiagnostics.invalid} suspicious water feature${featureDiagnostics.invalid === 1 ? "" : "s"}.`,
-      "warn",
-    );
-  }
 
   const canvas = engine.renderer?.domElement;
+  exposeFeatureDiagnostics(engine, plan, canvas);
   if (!canvas?.dataset) return;
 
   canvas.dataset.contextualGeneration = "ready";
@@ -57,19 +78,6 @@ function exposeContextualPlan(engine, result) {
   canvas.dataset.renderDepthMeters = String(plan.visualFeatures.mapDepthMeters);
   canvas.dataset.outerSkirtVisible = String(
     plan.boundsManager.showOuterSkirt,
-  );
-  canvas.dataset.contextualSuspiciousGeometry = String(
-    featureDiagnostics.hasSuspiciousGeometry,
-  );
-  setDatasetNumber(
-    canvas.dataset,
-    "contextualWaterFeaturesInspected",
-    featureDiagnostics.inspected,
-  );
-  setDatasetNumber(
-    canvas.dataset,
-    "contextualWaterFeaturesInvalid",
-    featureDiagnostics.invalid,
   );
 
   const diagnostics = result.contextualDiagnostics;
