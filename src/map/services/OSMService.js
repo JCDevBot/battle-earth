@@ -52,18 +52,29 @@ function joinMemberWays(members, wayIndex) {
   return rings;
 }
 
+function hasIndependentLinearSemantics(tags = {}) {
+  return Boolean(
+    tags.highway ||
+      tags.railway ||
+      tags.barrier ||
+      tags.waterway ||
+      tags.power ||
+      tags.route,
+  );
+}
+
 export class OSMService {
   constructor({
     apiUrl = "https://overpass-api.de/api/interpreter",
     apiUrls = null,
     cache = new DataCache(),
-    logger = console
+    logger = console,
   } = {}) {
     this.apiUrl = apiUrl;
     this.apiUrls = apiUrls ?? [
       apiUrl,
       "https://overpass.kumi.systems/api/interpreter",
-      "https://overpass.openstreetmap.ru/api/interpreter"
+      "https://overpass.openstreetmap.ru/api/interpreter",
     ];
     this.cache = cache;
     this.logger = logger;
@@ -75,18 +86,25 @@ export class OSMService {
     const heightMeters = Math.abs(north - south) * 111139;
     const roundedSize = Math.round(heightMeters / 100) * 100;
 
-    return `map_${profileName}_v3_${centerLat.toFixed(3)}_${centerLon.toFixed(3)}_${roundedSize}`;
+    return `map_${profileName}_v4_${centerLat.toFixed(3)}_${centerLon.toFixed(3)}_${roundedSize}`;
   }
 
   buildQuery(south, west, north, east, profileName = "expanded") {
-    const selectors = OSM_FEATURE_PROFILES[profileName] ?? OSM_FEATURE_PROFILES.expanded;
+    const selectors =
+      OSM_FEATURE_PROFILES[profileName] ?? OSM_FEATURE_PROFILES.expanded;
     const bbox = `(${south},${west},${north},${east})`;
     const body = selectors.map((selector) => `${selector}${bbox};`).join("");
 
     return `[out:json][timeout:90];(${body});(._;>;);out body;`;
   }
 
-  async fetchMapData(south, west, north, east, { profileName = "expanded", retryCount = 0 } = {}) {
+  async fetchMapData(
+    south,
+    west,
+    north,
+    east,
+    { profileName = "expanded", retryCount = 0 } = {},
+  ) {
     const cacheKey = this.getCacheKey(south, west, north, east, profileName);
     const cachedData = await this.cache.get(cacheKey);
 
@@ -95,7 +113,9 @@ export class OSMService {
       return { data: cachedData, fromCache: true };
     }
 
-    this.logger.log?.(`Fetching ${profileName} OSM data. D32 uses broad base data for core/expanded/tactical presets.`);
+    this.logger.log?.(
+      `Fetching ${profileName} OSM data. D32 uses broad base data for core/expanded/tactical presets.`,
+    );
     const query = this.buildQuery(south, west, north, east, profileName);
 
     const response = await this.fetchWithOverpassFailover(query, retryCount);
@@ -112,18 +132,29 @@ export class OSMService {
       try {
         const response = await fetch(url, {
           method: "POST",
-          body: `data=${encodeURIComponent(query)}`
+          body: `data=${encodeURIComponent(query)}`,
         });
-
         if (response.ok) return response;
 
         lastStatus = response.status;
         const retryAfter = Number(response.headers?.get?.("Retry-After") ?? 0);
-        const isRetryable = response.status === 429 || response.status === 502 || response.status === 503 || response.status === 504;
+        const isRetryable =
+          response.status === 429 ||
+          response.status === 502 ||
+          response.status === 503 ||
+          response.status === 504;
 
         if (isRetryable) {
-          const waitMs = Math.max(1200, Math.min(8000, retryAfter ? retryAfter * 1000 : (retryCount + 1) * 2200));
-          this.logger.warn?.(`Overpass ${response.status} from ${url}. Trying failover after ${Math.round(waitMs / 1000)}s.`);
+          const waitMs = Math.max(
+            1200,
+            Math.min(
+              8000,
+              retryAfter ? retryAfter * 1000 : (retryCount + 1) * 2200,
+            ),
+          );
+          this.logger.warn?.(
+            `Overpass ${response.status} from ${url}. Trying failover after ${Math.round(waitMs / 1000)}s.`,
+          );
           await new Promise((resolve) => setTimeout(resolve, waitMs));
           continue;
         }
@@ -136,8 +167,12 @@ export class OSMService {
     }
 
     if (retryCount < 2) {
-      this.logger.warn?.("All Overpass endpoints failed. Retrying full request with backoff.");
-      await new Promise((resolve) => setTimeout(resolve, (retryCount + 2) * 2500));
+      this.logger.warn?.(
+        "All Overpass endpoints failed. Retrying full request with backoff.",
+      );
+      await new Promise((resolve) =>
+        setTimeout(resolve, (retryCount + 2) * 2500),
+      );
       return this.fetchWithOverpassFailover(query, retryCount + 1);
     }
 
@@ -153,41 +188,51 @@ export class OSMService {
   resolveRelations(data) {
     const elements = data.elements ?? [];
     const wayIndex = new Map();
-    const output = [];
+    const syntheticWays = [];
+    const consumedMemberRefs = new Set();
 
-    for (const el of elements) {
-      if (el.type === "way") wayIndex.set(el.id, el);
+    for (const element of elements) {
+      if (element.type === "way") wayIndex.set(element.id, element);
     }
 
-    for (const el of elements) {
-      if (el.type === "node" || el.type === "way") {
-        output.push(el);
-        continue;
-      }
+    for (const element of elements) {
+      if (element.type !== "relation" || !element.tags) continue;
 
-      if (el.type !== "relation" || !el.tags) continue;
-
-      const outerMembers = (el.members ?? []).filter(
-        (member) => member.type === "way" && (member.role === "outer" || member.role === "")
+      const outerMembers = (element.members ?? []).filter(
+        (member) =>
+          member.type === "way" &&
+          (member.role === "outer" || member.role === ""),
       );
-      const innerMembers = (el.members ?? []).filter(
-        (member) => member.type === "way" && member.role === "inner"
+      const innerMembers = (element.members ?? []).filter(
+        (member) => member.type === "way" && member.role === "inner",
       );
       const outerRings = joinMemberWays(outerMembers, wayIndex);
+      if (!outerRings.length) continue;
+
       const innerRings = joinMemberWays(innerMembers, wayIndex);
+      for (const member of [...outerMembers, ...innerMembers]) {
+        consumedMemberRefs.add(member.ref);
+      }
 
       outerRings.forEach((nodes, ringIndex) => {
-        output.push({
+        syntheticWays.push({
           type: "way",
-          id: -(el.id * 1000 + ringIndex + 1),
-          tags: { ...el.tags },
+          id: -(element.id * 1000 + ringIndex + 1),
+          tags: { ...element.tags },
           nodes,
-          innerRings
+          innerRings,
         });
       });
     }
 
-    return { ...data, elements: output };
+    const output = elements.filter((element) => {
+      if (element.type === "relation") return false;
+      if (element.type !== "way") return true;
+      if (!consumedMemberRefs.has(element.id)) return true;
+      return hasIndependentLinearSemantics(element.tags);
+    });
+
+    return { ...data, elements: [...output, ...syntheticWays] };
   }
 
   async clearCache() {
