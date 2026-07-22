@@ -73,6 +73,8 @@ describe("contextual visual bounds diagnostics", () => {
       valid: false,
       reason: "invalid-bounds",
     });
-    expect(Object.isFrozen(inspectContextualVisualBounds(plan, { minX: 4 }))).toBe(true);
+    expect(
+      Object.isFrozen(inspectContextualVisualBounds(plan, { minX: 4 })),
+    ).toBe(true);
   });
 });
