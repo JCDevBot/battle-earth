@@ -52,7 +52,12 @@ describe("diagnostic map layer filtering", () => {
       DIAGNOSTIC_MAP_LAYER_MODES.WATER_ONLY,
     );
 
-    expect(result.elements.map((element) => element.id)).toEqual([1, 2, 3, 10]);
+    expect(result.elements.map((element) => element.id)).toEqual([
+      1,
+      2,
+      3,
+      10,
+    ]);
   });
 
   it("falls back to the unmodified payload for unknown modes", () => {
