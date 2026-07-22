@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { applyContextualCameraFrame } from "./contextualCameraFraming.js";
 import { runContextualMapGeneration } from "./runContextualMapGeneration.js";
 
@@ -11,6 +12,20 @@ function setDatasetNumber(dataset, key, value) {
     return;
   }
   dataset[key] = String(value);
+}
+
+function exposePlayableCenterProbe(engine) {
+  const canvas = engine.renderer?.domElement;
+  if (!canvas?.dataset || !engine.camera) return;
+
+  const groundY = Number(engine.terrain?.getWorldHeight?.(0, 0));
+  const point = new THREE.Vector3(0, Number.isFinite(groundY) ? groundY : 0, 0);
+  point.project(engine.camera);
+
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  setDatasetNumber(canvas.dataset, "playableCenterScreenX", ((point.x + 1) * 0.5) * width);
+  setDatasetNumber(canvas.dataset, "playableCenterScreenY", ((1 - point.y) * 0.5) * height);
 }
 
 function exposeContextualPlan(engine, result) {
@@ -91,6 +106,7 @@ export function installContextualMapEngineGeneration(
   prototype.generateMap = async function generateContextualMap(config) {
     const result = await runner(this, config);
     applyContextualCameraFrame(this, result?.plan);
+    exposePlayableCenterProbe(this);
     exposeContextualPlan(this, result);
     return result;
   };
