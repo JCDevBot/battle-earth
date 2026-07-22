@@ -1,6 +1,7 @@
 import { analyzeOsmData } from "../map/services/analyzeOsmData";
 import { generateProceduralOsmData } from "../map/services/ProceduralFallback";
 import { createContextualGenerationDiagnostics } from "./contextualGenerationDiagnostics.js";
+import { filterMapDataForDiagnosticLayer } from "./diagnosticMapLayers.js";
 import { beginContextualRuntimeMeasurement } from "./contextualRuntimeMeasurement.js";
 import { createMapEngineGenerationPlan } from "./mapEngineGenerationPlan.js";
 
@@ -56,13 +57,24 @@ export async function runContextualMapGeneration(engine, config = {}) {
       "success",
     );
 
-    let mapData = result.data;
+    let sourceMapData = result.data;
     if (osmCount < 20) {
       engine.log("Sparse OSM data — generating procedural fill.", "warn");
       const procedural = generateProceduralOsmData(plan.proceduralFallback);
-      mapData = {
+      sourceMapData = {
         elements: [...(result.data.elements ?? []), ...procedural.elements],
       };
+    }
+
+    const mapData = filterMapDataForDiagnosticLayer(
+      sourceMapData,
+      config.diagnosticLayerMode,
+    );
+    if (config.diagnosticLayerMode && config.diagnosticLayerMode !== "all") {
+      engine.log(
+        `Diagnostic layer mode: ${config.diagnosticLayerMode}.`,
+        "warn",
+      );
     }
 
     const analysis = analyzeOsmData(mapData);
@@ -209,6 +221,7 @@ export async function runContextualMapGeneration(engine, config = {}) {
     engine.callbacks.onGenerationStats?.({
       ...(engine.builder.getGenerationDiagnostics?.() ?? {}),
       contextual: contextualDiagnostics,
+      diagnosticLayerMode: config.diagnosticLayerMode ?? "all",
     });
     engine.log("Map generated.", "success");
 
