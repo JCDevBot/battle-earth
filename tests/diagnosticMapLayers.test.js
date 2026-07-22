@@ -11,8 +11,18 @@ const MAP_DATA = {
     { type: "node", id: 2, lat: 1, lon: 2 },
     { type: "node", id: 3, lat: 2, lon: 2 },
     { type: "node", id: 4, lat: 3, lon: 3 },
-    { type: "way", id: 10, nodes: [1, 2, 3], tags: { natural: "water" } },
-    { type: "way", id: 11, nodes: [3, 4], tags: { highway: "residential" } },
+    {
+      type: "way",
+      id: 10,
+      nodes: [1, 2, 3],
+      tags: { natural: "water" },
+    },
+    {
+      type: "way",
+      id: 11,
+      nodes: [3, 4],
+      tags: { highway: "residential" },
+    },
     { type: "way", id: 12, nodes: [1, 4], tags: { building: "yes" } },
   ],
 };
@@ -42,10 +52,14 @@ describe("diagnostic map layer filtering", () => {
       DIAGNOSTIC_MAP_LAYER_MODES.WATER_ONLY,
     );
 
-    expect(result.elements.map((element) => element.id)).toEqual([1, 2, 3, 10]);
+    expect(result.elements.map((element) => element.id)).toEqual([
+      1, 2, 3, 10,
+    ]);
   });
 
   it("falls back to the unmodified payload for unknown modes", () => {
-    expect(filterMapDataForDiagnosticLayer(MAP_DATA, "unknown")).toBe(MAP_DATA);
+    expect(filterMapDataForDiagnosticLayer(MAP_DATA, "unknown")).toBe(
+      MAP_DATA,
+    );
   });
 });
