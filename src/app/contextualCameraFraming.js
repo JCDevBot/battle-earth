@@ -3,6 +3,11 @@ function finitePositive(value, fallback) {
   return Number.isFinite(number) && number > 0 ? number : fallback;
 }
 
+function finiteNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
 export function createContextualCameraFrame(plan) {
   const camera = plan?.camera;
   if (!camera) return null;
@@ -28,9 +33,15 @@ export function applyContextualCameraFrame(engine, plan) {
   const frame = createContextualCameraFrame(plan);
   if (!frame || !engine?.camera || !engine?.controls) return false;
 
-  engine.camera.position.set(frame.x, frame.y, frame.z);
-  engine.camera.lookAt(frame.targetX, frame.targetY, frame.targetZ);
-  engine.controls.target.set(frame.targetX, frame.targetY, frame.targetZ);
+  const centerGroundY = finiteNumber(
+    engine.terrain?.getWorldHeight?.(frame.targetX, frame.targetZ),
+    frame.targetY,
+  );
+  const cameraY = centerGroundY + frame.y;
+
+  engine.camera.position.set(frame.x, cameraY, frame.z);
+  engine.camera.lookAt(frame.targetX, centerGroundY, frame.targetZ);
+  engine.controls.target.set(frame.targetX, centerGroundY, frame.targetZ);
   engine.controls.update();
   return true;
 }
