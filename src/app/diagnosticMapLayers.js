@@ -2,6 +2,9 @@ export const DIAGNOSTIC_MAP_LAYER_MODES = Object.freeze({
   ALL: "all",
   TERRAIN_ONLY: "terrain-only",
   WATER_ONLY: "water-only",
+  ROADS_ONLY: "roads-only",
+  BUILDINGS_ONLY: "buildings-only",
+  VEGETATION_ONLY: "vegetation-only",
 });
 
 function isWaterFeature(element) {
@@ -11,6 +14,29 @@ function isWaterFeature(element) {
       tags.water ||
       tags.waterway ||
       tags.landuse === "reservoir",
+  );
+}
+
+function isRoadFeature(element) {
+  const tags = element?.tags ?? {};
+  return Boolean(tags.highway || tags.railway);
+}
+
+function isBuildingFeature(element) {
+  return Boolean(element?.tags?.building);
+}
+
+function isVegetationFeature(element) {
+  const tags = element?.tags ?? {};
+  return Boolean(
+    tags.natural === "tree" ||
+      tags.natural === "wood" ||
+      tags.natural === "scrub" ||
+      tags.natural === "heath" ||
+      tags.natural === "wetland" ||
+      tags.landuse === "forest" ||
+      tags.landuse === "grass" ||
+      tags.leisure === "park",
   );
 }
 
@@ -29,35 +55,20 @@ function referencedElementIds(elements) {
   return { nodeIds, wayIds };
 }
 
-/**
- * Restricts fetched map data to a deterministic visual subsystem for manual
- * diagnosis. This is a test-lab aid only; normal gameplay uses the complete
- * source payload.
- */
-export function filterMapDataForDiagnosticLayer(
-  mapData = {},
-  mode = DIAGNOSTIC_MAP_LAYER_MODES.ALL,
-) {
+function retainFeatureFamily(mapData, predicate) {
   const elements = Array.isArray(mapData.elements) ? mapData.elements : [];
-
-  if (mode === DIAGNOSTIC_MAP_LAYER_MODES.ALL) return mapData;
-
-  if (mode === DIAGNOSTIC_MAP_LAYER_MODES.TERRAIN_ONLY) {
-    return { ...mapData, elements: [] };
-  }
-
-  if (mode !== DIAGNOSTIC_MAP_LAYER_MODES.WATER_ONLY) return mapData;
-
-  const waterFeatures = elements.filter(
+  const selectedFeatures = elements.filter(
     (element) =>
-      (element?.type === "way" || element?.type === "relation") &&
-      isWaterFeature(element),
+      (element?.type === "node" ||
+        element?.type === "way" ||
+        element?.type === "relation") &&
+      predicate(element),
   );
-  const references = referencedElementIds(waterFeatures);
+  const references = referencedElementIds(selectedFeatures);
   const referencedWays = elements.filter(
     (element) => element?.type === "way" && references.wayIds.has(element.id),
   );
-  const allRetainedFeatures = [...waterFeatures, ...referencedWays];
+  const allRetainedFeatures = [...selectedFeatures, ...referencedWays];
   const retainedReferences = referencedElementIds(allRetainedFeatures);
   const retainedIds = new Set(allRetainedFeatures.map((element) => element.id));
 
@@ -69,4 +80,30 @@ export function filterMapDataForDiagnosticLayer(
         (element?.type === "node" && retainedReferences.nodeIds.has(element.id)),
     ),
   };
+}
+
+/**
+ * Restricts fetched map data to a deterministic visual subsystem for manual
+ * diagnosis. This is a test-lab aid only; normal gameplay uses the complete
+ * source payload.
+ */
+export function filterMapDataForDiagnosticLayer(
+  mapData = {},
+  mode = DIAGNOSTIC_MAP_LAYER_MODES.ALL,
+) {
+  if (mode === DIAGNOSTIC_MAP_LAYER_MODES.ALL) return mapData;
+
+  if (mode === DIAGNOSTIC_MAP_LAYER_MODES.TERRAIN_ONLY) {
+    return { ...mapData, elements: [] };
+  }
+
+  const predicates = {
+    [DIAGNOSTIC_MAP_LAYER_MODES.WATER_ONLY]: isWaterFeature,
+    [DIAGNOSTIC_MAP_LAYER_MODES.ROADS_ONLY]: isRoadFeature,
+    [DIAGNOSTIC_MAP_LAYER_MODES.BUILDINGS_ONLY]: isBuildingFeature,
+    [DIAGNOSTIC_MAP_LAYER_MODES.VEGETATION_ONLY]: isVegetationFeature,
+  };
+  const predicate = predicates[mode];
+
+  return predicate ? retainFeatureFamily(mapData, predicate) : mapData;
 }
