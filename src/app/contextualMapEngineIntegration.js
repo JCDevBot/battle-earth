@@ -87,9 +87,14 @@ export function pickPlayableTerrainPoint(engine, event) {
 
   engine.updatePointerFromEvent(event);
   const hits = engine.raycaster.intersectObject(engine.terrain.mesh, false);
-  if (!hits.length) return null;
+  const playableHit = hits.find((hit) =>
+    typeof engine.bounds?.containsPoint === "function"
+      ? engine.bounds.containsPoint(hit.point, 4)
+      : true,
+  );
+  if (!playableHit) return null;
 
-  return { point: hits[0].point, hit: hits[0] };
+  return { point: playableHit.point, hit: playableHit };
 }
 
 function installTerrainFirstDeploymentPicking(prototype) {
