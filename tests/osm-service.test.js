@@ -12,6 +12,14 @@ function createService() {
   });
 }
 
+describe("OSMService", () => {
+  it("uses a new cache namespace for corrected relation assembly", () => {
+    expect(createService().getCacheKey(44, -94, 45, -93, "expanded")).toContain(
+      "expanded_v3_",
+    );
+  });
+});
+
 describe("OSMService.resolveRelations", () => {
   it("joins split outer members into one closed synthetic way", () => {
     const resolved = createService().resolveRelations({
