@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  quarantineSuspiciousWaterFeatures,
-} from "../src/app/contextualFeatureQuarantine.js";
+import { quarantineSuspiciousWaterFeatures } from "../src/app/contextualFeatureQuarantine.js";
 
 function suspicious(index, reason = "suspicious-full-map-coverage") {
   return { collection: "water", index, reason, sourceId: `water-${index}` };
