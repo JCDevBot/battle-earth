@@ -215,12 +215,16 @@ function installTerrainFirstDeploymentPicking(prototype) {
     const contextualPick = pickPlayableTerrainPoint(this, event);
     if (contextualPick) return contextualPick;
 
-    // Do not reinterpret an explicit contextual terrain hit outside the playable
-    // battlefield. The legacy fallback is only for a complete ray miss.
+    // Preserve the pickWorldPoint object contract for an explicit contextual
+    // terrain hit outside the playable battlefield. The normal spawn path will
+    // reject this point without falling through to visual-feature picking.
     const contextualTerrainHits = this.terrain?.mesh
       ? this.raycaster?.intersectObject?.(this.terrain.mesh, false) ?? []
       : [];
-    if (contextualTerrainHits.length > 0) return null;
+    if (contextualTerrainHits.length > 0) {
+      const hit = contextualTerrainHits[0];
+      return { point: hit.point, hit };
+    }
 
     // Preserve the terrain-first contract while recovering from a transient
     // contextual ray miss. The legacy picker may still resolve the authoritative
