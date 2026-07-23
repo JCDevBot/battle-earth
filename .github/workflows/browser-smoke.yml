@@ -71,6 +71,7 @@ jobs:
           done
 
           node tests/browser/prototype-smoke.mjs
+          node tests/browser/contextual-visual-capture.mjs
 
       - name: Upload browser diagnostics
         if: always()
