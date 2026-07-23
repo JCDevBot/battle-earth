@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { summarizeContextualFeatureBounds } from "./contextualFeatureDiagnostics.js";
+import { quarantineSuspiciousWaterFeatures } from "./contextualFeatureQuarantine.js";
 import { applyContextualCameraFrame } from "./contextualCameraFraming.js";
 import { runContextualMapGeneration } from "./runContextualMapGeneration.js";
 
@@ -29,7 +30,7 @@ function exposePlayableCenterProbe(engine) {
   setDatasetNumber(canvas.dataset, "playableCenterScreenY", ((1 - point.y) * 0.5) * height);
 }
 
-function exposeFeatureDiagnostics(engine, plan, canvas) {
+function exposeFeatureDiagnostics(engine, plan, canvas, config = {}) {
   if (!Array.isArray(engine.builder?.waterPolygons)) return;
 
   const diagnostics = summarizeContextualFeatureBounds(plan, {
@@ -37,9 +38,18 @@ function exposeFeatureDiagnostics(engine, plan, canvas) {
   });
   engine.lastContextualFeatureDiagnostics = diagnostics;
 
+  let quarantine = Object.freeze({ attempted: 0, removed: 0, sourceIds: Object.freeze([]) });
+  if (diagnostics.hasSuspiciousGeometry && config.quarantineSuspiciousContextWater !== false) {
+    quarantine = quarantineSuspiciousWaterFeatures(engine.builder, diagnostics);
+    engine.lastContextualFeatureQuarantine = quarantine;
+  }
+
   if (diagnostics.hasSuspiciousGeometry) {
+    const quarantined = quarantine.removed > 0
+      ? ` Quarantined ${quarantine.removed}.`
+      : "";
     engine.log?.(
-      `Context geometry warning: ${diagnostics.invalid} suspicious water feature${diagnostics.invalid === 1 ? "" : "s"}.`,
+      `Context geometry warning: ${diagnostics.invalid} suspicious water feature${diagnostics.invalid === 1 ? "" : "s"}.${quarantined}`,
       "warn",
     );
   }
@@ -58,9 +68,14 @@ function exposeFeatureDiagnostics(engine, plan, canvas) {
     "contextualWaterFeaturesInvalid",
     diagnostics.invalid,
   );
+  setDatasetNumber(
+    canvas.dataset,
+    "contextualWaterFeaturesQuarantined",
+    quarantine.removed,
+  );
 }
 
-function exposeContextualPlan(engine, result) {
+function exposeContextualPlan(engine, result, config = {}) {
   const plan = result?.plan;
   if (!plan) return;
 
@@ -68,7 +83,7 @@ function exposeContextualPlan(engine, result) {
   engine.lastContextualGenerationDiagnostics = result.contextualDiagnostics ?? null;
 
   const canvas = engine.renderer?.domElement;
-  exposeFeatureDiagnostics(engine, plan, canvas);
+  exposeFeatureDiagnostics(engine, plan, canvas, config);
   if (!canvas?.dataset) return;
 
   canvas.dataset.contextualGeneration = "ready";
@@ -177,7 +192,7 @@ export function installContextualMapEngineGeneration(
     const result = await runner(this, config);
     applyContextualCameraFrame(this, result?.plan);
     exposePlayableCenterProbe(this);
-    exposeContextualPlan(this, result);
+    exposeContextualPlan(this, result, config);
     return result;
   };
 
