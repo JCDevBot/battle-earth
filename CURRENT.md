@@ -1,6 +1,6 @@
 # Current Work
 
-Last updated: 2026-07-22
+Last updated: 2026-07-23
 
 ## Active objective
 
@@ -47,6 +47,9 @@ without explicit authorization and required local visual/gameplay review.
   domains, diagnostic layer routes, OSM multipolygon ring assembly safeguards,
   suspicious filled-water diagnostics, and narrow quarantine support for malformed
   water geometry.
+- Browser Smoke now captures every contextual layer-isolation route at a fixed
+  1440×900 viewport and uploads the screenshots plus a machine-readable diagnostics
+  report as workflow artifacts.
 - The latest visual review remains a failed acceptance gate until the benchmark
   routes confirm that the rectangular water slab, cyan void, and cross-layer
   alignment failures are gone.
@@ -79,6 +82,12 @@ Use the same benchmark location, seed, and camera to inspect layers in this orde
 5. `?scenario=replica-battle-vegetation-only`
 6. `?scenario=replica-battle`
 7. `?scenario=replica-battle-no-context`
+
+Browser Smoke captures these routes automatically into `browser-artifacts/` using
+file names beginning with `contextual-`. The artifact report records scenario status,
+render/playable dimensions, outer-skirt state, browser errors, and screenshot paths.
+These deterministic fallback captures supplement but do not replace human review of
+the real-data benchmark.
 
 Do not close issue #10 or advance to Replica Mode fidelity work until human review
 confirms:
