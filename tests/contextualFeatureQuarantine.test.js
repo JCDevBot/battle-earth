@@ -23,7 +23,11 @@ describe("contextual water geometry quarantine", () => {
       invalidEntries: [suspicious(0)],
     });
 
-    expect(result).toEqual({ attempted: 1, removed: 1, sourceIds: ["water-0"] });
+    expect(result).toEqual({
+      attempted: 1,
+      removed: 1,
+      sourceIds: ["water-0"],
+    });
     expect(parent.remove).toHaveBeenCalledWith(mesh);
     expect(geometry.dispose).toHaveBeenCalledOnce();
     expect(builder.waterPolygons).toEqual([]);
