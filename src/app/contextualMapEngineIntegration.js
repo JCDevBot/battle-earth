@@ -162,6 +162,31 @@ function pickPlayableGroundPlanePoint(engine) {
   return { point, hit: null };
 }
 
+function pickPlayableCameraTarget(engine, event) {
+  const canvas = engine.renderer?.domElement;
+  const target = engine.controls?.target;
+  if (!canvas || !target || !engine.camera || !isPlayablePoint(engine, target)) {
+    return null;
+  }
+
+  const rect = canvas.getBoundingClientRect?.();
+  if (!rect?.width || !rect?.height) return null;
+
+  const groundY = Number(engine.terrain?.getWorldHeight?.(target.x, target.z));
+  const point = new THREE.Vector3(
+    target.x,
+    Number.isFinite(groundY) ? groundY : Number(target.y) || 0,
+    target.z,
+  );
+  const projected = point.clone().project(engine.camera);
+  const screenX = rect.left + ((projected.x + 1) * 0.5) * rect.width;
+  const screenY = rect.top + ((1 - projected.y) * 0.5) * rect.height;
+  const tolerance = Math.max(28, Math.min(rect.width, rect.height) * 0.1);
+  const distance = Math.hypot(event.clientX - screenX, event.clientY - screenY);
+
+  return distance <= tolerance ? { point, hit: null } : null;
+}
+
 export function pickPlayableTerrainPoint(engine, event) {
   if (
     !engine?.deployMode ||
@@ -180,7 +205,10 @@ export function pickPlayableTerrainPoint(engine, event) {
   // A deformed or not-yet-updated terrain mesh can occasionally miss a valid
   // screen-space deployment click. Fall back to the camera ray's ground plane,
   // but retain the same playable-bounds validation before allowing a spawn.
-  return pickPlayableGroundPlanePoint(engine);
+  return (
+    pickPlayableGroundPlanePoint(engine) ??
+    pickPlayableCameraTarget(engine, event)
+  );
 }
 
 function projectOriginalGroundPick(engine, pick) {
