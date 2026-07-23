@@ -62,32 +62,40 @@ describe("contextual feature diagnostics integration", () => {
     );
   });
 
-  it("can preserve suspicious geometry when quarantine is explicitly disabled", async () => {
-    class TestMapEngine {
-      constructor() {
-        this.renderer = { domElement: { dataset: {} } };
-        this.builder = {
-          waterPolygons: [
-            {
-              feature: { id: "review-only-water" },
-              bounds: { minX: -245, maxX: 245, minZ: -195, maxZ: 195 },
-            },
-          ],
-        };
-        this.log = vi.fn();
+  it(
+    "can preserve suspicious geometry when quarantine is explicitly disabled",
+    async () => {
+      class TestMapEngine {
+        constructor() {
+          this.renderer = { domElement: { dataset: {} } };
+          this.builder = {
+            waterPolygons: [
+              {
+                feature: { id: "review-only-water" },
+                bounds: {
+                  minX: -245,
+                  maxX: 245,
+                  minZ: -195,
+                  maxZ: 195,
+                },
+              },
+            ],
+          };
+          this.log = vi.fn();
+        }
       }
-    }
 
-    installContextualMapEngineGeneration(TestMapEngine, async () => result);
-    const engine = new TestMapEngine();
-    await engine.generateMap({ quarantineSuspiciousContextWater: false });
+      installContextualMapEngineGeneration(TestMapEngine, async () => result);
+      const engine = new TestMapEngine();
+      await engine.generateMap({ quarantineSuspiciousContextWater: false });
 
-    expect(engine.builder.waterPolygons).toHaveLength(1);
-    expect(engine.renderer.domElement.dataset).toMatchObject({
-      contextualSuspiciousGeometry: "true",
-      contextualWaterFeaturesQuarantined: "0",
-    });
-  });
+      expect(engine.builder.waterPolygons).toHaveLength(1);
+      expect(engine.renderer.domElement.dataset).toMatchObject({
+        contextualSuspiciousGeometry: "true",
+        contextualWaterFeaturesQuarantined: "0",
+      });
+    },
+  );
 
   it("reports clean water geometry without a warning", async () => {
     class TestMapEngine {
