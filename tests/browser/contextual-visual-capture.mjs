@@ -29,7 +29,9 @@ function validateContextContract(scenario, diagnostics) {
   if (diagnostics.contextualGeneration !== "ready") {
     errors.push("contextual generation did not report ready");
   }
-  if ([playableWidth, playableDepth, renderWidth, renderDepth].includes(null)) {
+  if (
+    [playableWidth, playableDepth, renderWidth, renderDepth].includes(null)
+  ) {
     errors.push("one or more map dimensions were unavailable");
     return errors;
   }
