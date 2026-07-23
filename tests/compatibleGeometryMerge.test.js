@@ -11,10 +11,7 @@ describe("compatible geometry merge", () => {
     const triangle = new THREE.BufferGeometry();
     triangle.setAttribute(
       "position",
-      new THREE.Float32BufferAttribute(
-        [0, 0, 0, 1, 0, 0, 0, 0, 1],
-        3,
-      ),
+      new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0, 0, 0, 1], 3),
     );
 
     const merged = mergeCompatibleGeometries([box, triangle]);
