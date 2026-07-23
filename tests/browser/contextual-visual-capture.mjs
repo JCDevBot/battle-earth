@@ -24,7 +24,9 @@ const report = [];
 try {
   for (const scenario of routes) {
     const events = [];
-    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    const page = await browser.newPage({
+      viewport: { width: 1440, height: 900 },
+    });
 
     page.on("pageerror", (error) => {
       events.push({ type: "pageerror", message: error.message });
@@ -60,7 +62,9 @@ try {
         timeout: 30_000,
       });
 
-      const loadingOverlay = page.getByText("Generating map...", { exact: true });
+      const loadingOverlay = page.getByText("Generating map...", {
+        exact: true,
+      });
       await loadingOverlay.waitFor({ state: "hidden", timeout: 90_000 });
 
       const canvas = page.locator("canvas").first();
@@ -81,7 +85,9 @@ try {
       report.push({ scenario, status: "captured", screenshot, diagnostics, events });
     } catch (error) {
       const screenshot = `${artifactDir}/contextual-${scenario}-failure.png`;
-      await page.screenshot({ path: screenshot, fullPage: true }).catch(() => {});
+      await page
+        .screenshot({ path: screenshot, fullPage: true })
+        .catch(() => {});
       report.push({
         scenario,
         status: "failed",
