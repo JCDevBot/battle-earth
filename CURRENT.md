@@ -48,11 +48,15 @@ This task must:
 
 ### Active visual gate
 
-Use the same benchmark location, seed, and camera to compare:
+Use the same benchmark location, seed, and camera to inspect layers in this order:
 
-- `?scenario=replica-battle-water-only`
-- `?scenario=replica-battle`
-- `?scenario=replica-battle-no-context`
+1. `?scenario=replica-battle-terrain-only`
+2. `?scenario=replica-battle-water-only`
+3. `?scenario=replica-battle-roads-only`
+4. `?scenario=replica-battle-buildings-only`
+5. `?scenario=replica-battle-vegetation-only`
+6. `?scenario=replica-battle`
+7. `?scenario=replica-battle-no-context`
 
 Do not close issue #10 or advance to Replica Mode fidelity work until human review confirms:
 
@@ -63,7 +67,7 @@ Do not close issue #10 or advance to Replica Mode fidelity work until human revi
 - the playable boundary is readable without dominating the scene
 - contextual rendering improves continuity relative to the no-context control
 
-If the gate still fails, isolate terrain, water, roads/surfaces, buildings, vegetation, and tactical overlays before making further camera or art-direction changes.
+The first diagnostic route that introduces a defect identifies the subsystem to inspect next. Camera and art-direction changes must not be used to mask unresolved geometry, projection, or layer-alignment failures.
 
 ## Ordered next work
 
@@ -77,7 +81,7 @@ If the gate still fails, isolate terrain, water, roads/surfaces, buildings, vege
 
 ## Human decisions required
 
-Human visual review is required for the three benchmark routes above before issue #10 can be accepted. Camera and presentation tuning should follow geometry correctness rather than mask unresolved layer or bounds defects.
+Human visual review is required for the benchmark sequence above before issue #10 can be accepted. Camera and presentation tuning should follow geometry correctness rather than mask unresolved layer or bounds defects.
 
 ## Do not begin
 
