@@ -5,7 +5,7 @@ import {
 } from "../src/app/contextualCameraFraming.js";
 
 describe("contextual camera framing", () => {
-  it("creates a closer frame for a compact tactical slice", () => {
+  it("creates a steeper frame for a compact tactical slice", () => {
     expect(
       createContextualCameraFrame({
         camera: {
@@ -16,8 +16,8 @@ describe("contextual camera framing", () => {
       }),
     ).toEqual({
       x: 0,
-      y: 180,
-      z: 260,
+      y: 280,
+      z: 220,
       targetX: 0,
       targetY: 0,
       targetZ: 0,
@@ -60,7 +60,7 @@ describe("contextual camera framing", () => {
 
     expect(applyContextualCameraFrame(engine, plan)).toBe(true);
     expect(engine.terrain.getWorldHeight).toHaveBeenCalledWith(0, 0);
-    expect(engine.camera.position.set).toHaveBeenCalledWith(0, 222, 260);
+    expect(engine.camera.position.set).toHaveBeenCalledWith(0, 322, 220);
     expect(engine.camera.lookAt).toHaveBeenCalledWith(0, 42, 0);
     expect(engine.controls.target.set).toHaveBeenCalledWith(0, 42, 0);
     expect(engine.controls.update).toHaveBeenCalledOnce();
