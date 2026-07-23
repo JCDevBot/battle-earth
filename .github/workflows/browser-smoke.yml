@@ -72,6 +72,7 @@ jobs:
 
           node tests/browser/prototype-smoke.mjs
           node tests/browser/contextual-visual-capture.mjs
+          node tests/browser/contextual-visual-validate.mjs
 
       - name: Upload browser diagnostics
         if: always()
