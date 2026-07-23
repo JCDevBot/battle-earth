@@ -13,6 +13,46 @@ const routes = [
   "replica-battle-no-context",
 ];
 
+function numberOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function validateContextContract(scenario, diagnostics) {
+  const errors = [];
+  const playableWidth = numberOrNull(diagnostics.playableWidthMeters);
+  const playableDepth = numberOrNull(diagnostics.playableDepthMeters);
+  const renderWidth = numberOrNull(diagnostics.renderWidthMeters);
+  const renderDepth = numberOrNull(diagnostics.renderDepthMeters);
+
+  if (diagnostics.contextualGeneration !== "ready") {
+    errors.push("contextual generation did not report ready");
+  }
+  if ([playableWidth, playableDepth, renderWidth, renderDepth].includes(null)) {
+    errors.push("one or more map dimensions were unavailable");
+    return errors;
+  }
+
+  if (scenario === "replica-battle-no-context") {
+    if (renderWidth !== playableWidth || renderDepth !== playableDepth) {
+      errors.push("no-context control unexpectedly expanded render dimensions");
+    }
+    if (diagnostics.outerSkirtVisible !== "true") {
+      errors.push("no-context control did not retain the legacy outer skirt");
+    }
+    return errors;
+  }
+
+  if (renderWidth <= playableWidth || renderDepth <= playableDepth) {
+    errors.push("contextual route did not expand both render dimensions");
+  }
+  if (diagnostics.outerSkirtVisible !== "false") {
+    errors.push("contextual route still reports the legacy outer skirt");
+  }
+  return errors;
+}
+
 await mkdir(artifactDir, { recursive: true });
 
 const browser = await chromium.launch({
@@ -57,7 +97,8 @@ try {
     });
 
     try {
-      await page.goto(`${baseUrl}/?scenario=${scenario}`, {
+      const scenarioUrl = `${baseUrl}/?scenario=${scenario}`;
+      await page.goto(scenarioUrl, {
         waitUntil: "domcontentloaded",
         timeout: 30_000,
       });
@@ -78,15 +119,27 @@ try {
         renderWidthMeters: element.dataset.renderWidthMeters ?? null,
         renderDepthMeters: element.dataset.renderDepthMeters ?? null,
         outerSkirtVisible: element.dataset.outerSkirtVisible ?? null,
+        suspiciousGeometry: element.dataset.contextualSuspiciousGeometry ?? null,
+        waterFeaturesInspected:
+          element.dataset.contextualWaterFeaturesInspected ?? null,
+        waterFeaturesInvalid:
+          element.dataset.contextualWaterFeaturesInvalid ?? null,
+        waterFeaturesQuarantined:
+          element.dataset.contextualWaterFeaturesQuarantined ?? null,
       }));
+      const canvasBounds = await canvas.boundingBox();
+      const contractErrors = validateContextContract(scenario, diagnostics);
 
       const screenshot = `${artifactDir}/contextual-${scenario}.png`;
       await page.screenshot({ path: screenshot, fullPage: true });
       report.push({
         scenario,
-        status: "captured",
+        scenarioUrl,
+        status: contractErrors.length === 0 ? "captured" : "invalid",
         screenshot,
+        canvasBounds,
         diagnostics,
+        contractErrors,
         events,
       });
     } catch (error) {
@@ -113,10 +166,10 @@ try {
   await browser.close();
 }
 
-const failures = report.filter((entry) => entry.status === "failed");
+const failures = report.filter((entry) => entry.status !== "captured");
 if (failures.length > 0) {
   throw new Error(
-    `Failed to capture ${failures.length} contextual diagnostic scenario(s): ${failures
+    `Invalid contextual capture for ${failures.length} scenario(s): ${failures
       .map((entry) => entry.scenario)
       .join(", ")}`,
   );
