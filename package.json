@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
-    "format:check": "prettier --check README.md ROADMAP.md CONTRIBUTING.md CHANGELOG.md docs/architecture .github/workflows package.json eslint.config.js vitest.config.js tests src/App.jsx",
+    "format:check": "prettier --check README.md ROADMAP.md CONTRIBUTING.md CHANGELOG.md docs/architecture .github/workflows package.json eslint.config.js vitest.config.js tests src/App.jsx || (prettier tests/contextualFeatureIntegration.test.js && exit 1)",
     "check": "npm run lint && npm test && npm run format:check && npm run build"
   },
   "dependencies": {
