@@ -24,17 +24,20 @@ describe("contextual visual contract", () => {
     ).toEqual([]);
   });
 
-  it("accepts suspicious water only when every invalid feature was quarantined", () => {
-    expect(
-      validateContextualVisualContract("replica-battle", {
-        ...contextualDiagnostics,
-        suspiciousGeometry: "true",
-        waterFeaturesInspected: "4",
-        waterFeaturesInvalid: "2",
-        waterFeaturesQuarantined: "2",
-      }),
-    ).toEqual([]);
-  });
+  it(
+    "accepts suspicious water only when every invalid feature was quarantined",
+    () => {
+      expect(
+        validateContextualVisualContract("replica-battle", {
+          ...contextualDiagnostics,
+          suspiciousGeometry: "true",
+          waterFeaturesInspected: "4",
+          waterFeaturesInvalid: "2",
+          waterFeaturesQuarantined: "2",
+        }),
+      ).toEqual([]);
+    },
+  );
 
   it("rejects suspicious water left in the rendered scene", () => {
     expect(
@@ -56,8 +59,12 @@ describe("contextual visual contract", () => {
       waterFeaturesQuarantined: "3",
     });
 
-    expect(errors).toContain("invalid water feature count exceeded inspected count");
-    expect(errors).toContain("quarantined water feature count exceeded invalid count");
+    expect(errors).toContain(
+      "invalid water feature count exceeded inspected count",
+    );
+    expect(errors).toContain(
+      "quarantined water feature count exceeded invalid count",
+    );
     expect(errors).toContain(
       "invalid water geometry was reported without a suspicious flag",
     );
