@@ -1,6 +1,6 @@
 # Current Work
 
-Last updated: 2026-07-20
+Last updated: 2026-07-22
 
 ## Active objective
 
@@ -20,7 +20,6 @@ The existing draft pull request remains the integration branch. Do not merge wit
 
 ## Current status
 
-- GitHub Actions CI passes on the current branch.
 - Dependency installation, lint, deterministic tests, maintained-file formatting, production build, production-output smoke validation, and Chromium tactical smoke validation are established.
 - Stage routing validates and normalizes selected locations before entering campaign or tactical views.
 - Campaign and tactical stages are lazy-loaded and protected by a recoverable stage error boundary.
@@ -30,6 +29,8 @@ The existing draft pull request remains the integration branch. Do not merge wit
 - Duplicate BattleSession issue #14 is closed in favor of issue #13.
 - Issue #11, the vertical-slice Test Lab launcher, is complete. Development builds and `?dev=1` expose centralized full-flow and direct-battle entries using normal scenario, routing, and BattleSession contracts.
 - Browser smoke validation exercises both Test Lab entries before running the complete deterministic globe-to-tactical command flow.
+- Issue #10 now includes deterministic contextual bounds, buffered source/render domains, diagnostic layer routes, OSM multipolygon ring assembly safeguards, suspicious filled-water diagnostics, and narrow quarantine support for malformed water geometry.
+- The latest visual review remains a failed acceptance gate until the benchmark routes confirm that the rectangular water slab, cyan void, and cross-layer alignment failures are gone.
 
 ## Current task
 
@@ -45,6 +46,25 @@ This task must:
 - measure generation-time and memory impact
 - add deterministic bounds tests and visual/browser validation
 
+### Active visual gate
+
+Use the same benchmark location, seed, and camera to compare:
+
+- `?scenario=replica-battle-water-only`
+- `?scenario=replica-battle`
+- `?scenario=replica-battle-no-context`
+
+Do not close issue #10 or advance to Replica Mode fidelity work until human review confirms:
+
+- no artificial rectangular water or terrain slab
+- no cyan void in the default tactical frame
+- no buildings or roads floating on or passing through water
+- terrain, water, roads, buildings, and vegetation share one coherent origin
+- the playable boundary is readable without dominating the scene
+- contextual rendering improves continuity relative to the no-context control
+
+If the gate still fails, isolate terrain, water, roads/surfaces, buildings, vegetation, and tactical overlays before making further camera or art-direction changes.
+
 ## Ordered next work
 
 1. Issue #10 — contextual overscan and playable-versus-rendered bounds
@@ -57,7 +77,7 @@ This task must:
 
 ## Human decisions required
 
-None currently. Human review will be required before accepting visual fidelity, miniature art treatment, HQ placement feel, and the completed battle loop.
+Human visual review is required for the three benchmark routes above before issue #10 can be accepted. Camera and presentation tuning should follow geometry correctness rather than mask unresolved layer or bounds defects.
 
 ## Do not begin
 
