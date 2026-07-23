@@ -27,6 +27,34 @@ describe("compatible geometry merge", () => {
     triangle.dispose();
   });
 
+  it("drops attributes with incompatible storage metadata", () => {
+    const first = new THREE.BufferGeometry();
+    first.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0, 0, 0, 1], 3),
+    );
+    first.setAttribute(
+      "color",
+      new THREE.Float32BufferAttribute([1, 0, 0, 0, 1, 0, 0, 0, 1], 3),
+    );
+
+    const second = first.clone();
+    second.setAttribute(
+      "color",
+      new THREE.Uint8BufferAttribute([255, 0, 0, 0, 255, 0, 0, 0, 255], 3),
+    );
+
+    const merged = mergeCompatibleGeometries([first, second]);
+
+    expect(merged).not.toBeNull();
+    expect(merged.getAttribute("position").count).toBe(6);
+    expect(merged.getAttribute("color")).toBeUndefined();
+
+    merged.dispose();
+    first.dispose();
+    second.dispose();
+  });
+
   it("ignores invalid entries and returns null without a position geometry", () => {
     expect(mergeCompatibleGeometries([null, undefined])).toBeNull();
 
@@ -39,11 +67,21 @@ describe("compatible geometry merge", () => {
     geometry.dispose();
   });
 
-  it("installs once on a builder instance", () => {
-    const builder = { safeMergeGeometries: () => "legacy" };
+  it("installs once on the builder and its visual LOD managers", () => {
+    const builder = {
+      safeMergeGeometries: () => "legacy-builder",
+      buildingLOD: { safeMergeGeometries: () => "legacy-buildings" },
+      vegetationLOD: { safeMergeGeometries: () => "legacy-vegetation" },
+    };
 
     expect(installCompatibleGeometryMerge(builder)).toBe(true);
     expect(builder.safeMergeGeometries).toBe(mergeCompatibleGeometries);
+    expect(builder.buildingLOD.safeMergeGeometries).toBe(
+      mergeCompatibleGeometries,
+    );
+    expect(builder.vegetationLOD.safeMergeGeometries).toBe(
+      mergeCompatibleGeometries,
+    );
     expect(installCompatibleGeometryMerge(builder)).toBe(false);
   });
 });
