@@ -1,5 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
-import { pickPlayableTerrainPoint } from "../src/app/contextualMapEngineIntegration.js";
+import {
+  installContextualMapEngineGeneration,
+  pickPlayableTerrainPoint,
+} from "../src/app/contextualMapEngineIntegration.js";
+
+function contextualResult() {
+  return {
+    plan: {
+      gameplay: { mapWidthMeters: 350, mapDepthMeters: 350 },
+      visualFeatures: { mapWidthMeters: 490, mapDepthMeters: 490 },
+      boundsManager: { showOuterSkirt: false },
+    },
+    contextualDiagnostics: null,
+  };
+}
 
 describe("contextual deployment fallback", () => {
   it("uses a bounded ground-plane point when the terrain mesh misses", () => {
@@ -57,5 +71,45 @@ describe("contextual deployment fallback", () => {
     };
 
     expect(pickPlayableTerrainPoint(engine, {})).toBeNull();
+  });
+
+  it("recovers an in-bounds authoritative terrain pick after both contextual fallbacks miss", () => {
+    const terrainMesh = { name: "terrain" };
+    const legacyPick = {
+      point: { x: 24, y: 9, z: -31 },
+      hit: { object: terrainMesh },
+    };
+
+    class TestMapEngine {
+      constructor() {
+        this.deployMode = "friendly";
+        this.terrain = {
+          mesh: terrainMesh,
+          getWorldHeight: vi.fn(() => 2.5),
+        };
+        this.bounds = { containsPoint: vi.fn(() => true) };
+        this.raycaster = { intersectObject: vi.fn(() => []) };
+        this.updatePointerFromEvent = vi.fn();
+      }
+
+      pickWorldPoint() {
+        return legacyPick;
+      }
+    }
+
+    installContextualMapEngineGeneration(TestMapEngine, async () =>
+      contextualResult(),
+    );
+
+    const engine = new TestMapEngine();
+    const result = engine.pickWorldPoint({ clientX: 400, clientY: 300 });
+
+    expect(result.hit).toBe(legacyPick.hit);
+    expect(result.point.toArray()).toEqual([24, 2.5, -31]);
+    expect(engine.terrain.getWorldHeight).toHaveBeenCalledWith(24, -31);
+    expect(engine.bounds.containsPoint).toHaveBeenCalledWith(
+      legacyPick.point,
+      4,
+    );
   });
 });
