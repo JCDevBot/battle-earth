@@ -68,6 +68,44 @@ describe("contextual visual bounds diagnostics", () => {
     });
   });
 
+  it("rejects missing or blank coordinates instead of coercing them to zero", () => {
+    for (const missingValue of [null, undefined, ""]) {
+      expect(
+        inspectContextualVisualBounds(plan, {
+          minX: missingValue,
+          maxX: 40,
+          minZ: -20,
+          maxZ: 20,
+        }),
+      ).toEqual({
+        valid: false,
+        reason: "invalid-bounds",
+      });
+    }
+  });
+
+  it("rejects missing contextual render dimensions", () => {
+    expect(
+      inspectContextualVisualBounds(
+        {
+          visualFeatures: {
+            mapWidthMeters: null,
+            mapDepthMeters: 400,
+          },
+        },
+        {
+          minX: -20,
+          maxX: 20,
+          minZ: -20,
+          maxZ: 20,
+        },
+      ),
+    ).toEqual({
+      valid: false,
+      reason: "invalid-bounds",
+    });
+  });
+
   it("returns a stable invalid result for malformed inputs", () => {
     expect(inspectContextualVisualBounds(plan, { minX: 4 })).toEqual({
       valid: false,
