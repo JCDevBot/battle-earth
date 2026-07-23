@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { installContextualMapEngineGeneration } from "../src/app/contextualMapEngineIntegration.js";
+import {
+  installContextualMapEngineGeneration,
+} from "../src/app/contextualMapEngineIntegration.js";
 
 const result = {
   plan: {
