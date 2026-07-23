@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { installCompatibleGeometryMerge } from "./compatibleGeometryMerge.js";
 import { summarizeContextualFeatureBounds } from "./contextualFeatureDiagnostics.js";
 import { quarantineSuspiciousWaterFeatures } from "./contextualFeatureQuarantine.js";
 import { applyContextualCameraFrame } from "./contextualCameraFraming.js";
@@ -26,8 +27,16 @@ function exposePlayableCenterProbe(engine) {
 
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
-  setDatasetNumber(canvas.dataset, "playableCenterScreenX", ((point.x + 1) * 0.5) * width);
-  setDatasetNumber(canvas.dataset, "playableCenterScreenY", ((1 - point.y) * 0.5) * height);
+  setDatasetNumber(
+    canvas.dataset,
+    "playableCenterScreenX",
+    ((point.x + 1) * 0.5) * width,
+  );
+  setDatasetNumber(
+    canvas.dataset,
+    "playableCenterScreenY",
+    ((1 - point.y) * 0.5) * height,
+  );
 }
 
 function exposeFeatureDiagnostics(engine, plan, canvas, config = {}) {
@@ -38,16 +47,22 @@ function exposeFeatureDiagnostics(engine, plan, canvas, config = {}) {
   });
   engine.lastContextualFeatureDiagnostics = diagnostics;
 
-  let quarantine = Object.freeze({ attempted: 0, removed: 0, sourceIds: Object.freeze([]) });
-  if (diagnostics.hasSuspiciousGeometry && config.quarantineSuspiciousContextWater !== false) {
+  let quarantine = Object.freeze({
+    attempted: 0,
+    removed: 0,
+    sourceIds: Object.freeze([]),
+  });
+  if (
+    diagnostics.hasSuspiciousGeometry &&
+    config.quarantineSuspiciousContextWater !== false
+  ) {
     quarantine = quarantineSuspiciousWaterFeatures(engine.builder, diagnostics);
     engine.lastContextualFeatureQuarantine = quarantine;
   }
 
   if (diagnostics.hasSuspiciousGeometry) {
-    const quarantined = quarantine.removed > 0
-      ? ` Quarantined ${quarantine.removed}.`
-      : "";
+    const quarantined =
+      quarantine.removed > 0 ? ` Quarantined ${quarantine.removed}.` : "";
     engine.log?.(
       `Context geometry warning: ${diagnostics.invalid} suspicious water feature${diagnostics.invalid === 1 ? "" : "s"}.${quarantined}`,
       "warn",
@@ -80,7 +95,8 @@ function exposeContextualPlan(engine, result, config = {}) {
   if (!plan) return;
 
   engine.lastContextualGenerationPlan = plan;
-  engine.lastContextualGenerationDiagnostics = result.contextualDiagnostics ?? null;
+  engine.lastContextualGenerationDiagnostics =
+    result.contextualDiagnostics ?? null;
 
   const canvas = engine.renderer?.domElement;
   exposeFeatureDiagnostics(engine, plan, canvas, config);
@@ -211,6 +227,7 @@ export function installContextualMapEngineGeneration(
   installTerrainFirstDeploymentPicking(prototype);
 
   prototype.generateMap = async function generateContextualMap(config) {
+    installCompatibleGeometryMerge(this.builder);
     const result = await runner(this, config);
     applyContextualCameraFrame(this, result?.plan);
     exposePlayableCenterProbe(this);
