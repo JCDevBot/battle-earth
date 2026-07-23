@@ -183,6 +183,26 @@ export function pickPlayableTerrainPoint(engine, event) {
   return pickPlayableGroundPlanePoint(engine);
 }
 
+function projectOriginalGroundPick(engine, pick) {
+  const point = pick?.point;
+  if (!point || !isPlayablePoint(engine, point)) return null;
+
+  const hitObject = pick.hit?.object;
+  const terrainMesh = engine.terrain?.mesh;
+  const isGroundPick = !hitObject || hitObject === terrainMesh;
+  if (!isGroundPick) return null;
+
+  const groundY = Number(engine.terrain?.getWorldHeight?.(point.x, point.z));
+  return {
+    point: new THREE.Vector3(
+      point.x,
+      Number.isFinite(groundY) ? groundY : Number(point.y) || 0,
+      point.z,
+    ),
+    hit: hitObject === terrainMesh ? pick.hit : null,
+  };
+}
+
 function installTerrainFirstDeploymentPicking(prototype) {
   const originalPickWorldPoint = prototype.pickWorldPoint;
   if (typeof originalPickWorldPoint !== "function") return;
@@ -192,7 +212,16 @@ function installTerrainFirstDeploymentPicking(prototype) {
       return originalPickWorldPoint.call(this, event);
     }
 
-    return pickPlayableTerrainPoint(this, event);
+    const contextualPick = pickPlayableTerrainPoint(this, event);
+    if (contextualPick) return contextualPick;
+
+    // Preserve the terrain-first contract while recovering from a transient
+    // contextual ray miss. The legacy picker may still resolve the authoritative
+    // terrain or its ground-plane fallback; visual feature hits remain rejected.
+    return projectOriginalGroundPick(
+      this,
+      originalPickWorldPoint.call(this, event),
+    );
   };
 }
 
