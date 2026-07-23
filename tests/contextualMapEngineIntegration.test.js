@@ -203,7 +203,7 @@ describe("contextual MapEngine integration", () => {
     );
   });
 
-  it("does not fall back to contextual visual features for an out-of-bounds deployment pick", () => {
+  it("returns an out-of-bounds terrain pick without falling back to contextual visual features", () => {
     const outsideTerrainHit = { point: { x: 220, y: 1, z: 0 } };
     const originalPick = vi.fn(() => ({
       point: { x: 220, y: 3, z: 0 },
@@ -228,7 +228,10 @@ describe("contextual MapEngine integration", () => {
     );
 
     const engine = new TestMapEngine();
-    expect(engine.pickWorldPoint({ clientX: 12, clientY: 24 })).toBeNull();
+    expect(engine.pickWorldPoint({ clientX: 12, clientY: 24 })).toEqual({
+      point: outsideTerrainHit.point,
+      hit: outsideTerrainHit,
+    });
     expect(originalPick).not.toHaveBeenCalled();
 
     engine.deployMode = null;
