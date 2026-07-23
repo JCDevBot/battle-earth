@@ -190,7 +190,6 @@ function pickPlayableCameraTarget(engine, event) {
 export function pickPlayableTerrainPoint(engine, event) {
   if (
     !engine?.deployMode ||
-    !engine.terrain?.mesh ||
     !engine.raycaster ||
     typeof engine.updatePointerFromEvent !== "function"
   ) {
@@ -198,13 +197,17 @@ export function pickPlayableTerrainPoint(engine, event) {
   }
 
   engine.updatePointerFromEvent(event);
-  const hits = engine.raycaster.intersectObject(engine.terrain.mesh, false);
+  const terrainMesh = engine.terrain?.mesh;
+  const hits = terrainMesh
+    ? engine.raycaster.intersectObject(terrainMesh, false)
+    : [];
   const playableHit = hits.find((hit) => isPlayablePoint(engine, hit.point));
   if (playableHit) return { point: playableHit.point, hit: playableHit };
 
-  // A deformed or not-yet-updated terrain mesh can occasionally miss a valid
-  // screen-space deployment click. Fall back to the camera ray's ground plane,
-  // but retain the same playable-bounds validation before allowing a spawn.
+  // Terrain LOD rendering can temporarily or permanently omit the legacy
+  // terrain.mesh reference. Deployment still needs a deterministic playable
+  // ground pick, so fall back to the camera ray's ground plane and then the
+  // camera target while retaining the same playable-bounds validation.
   return (
     pickPlayableGroundPlanePoint(engine) ??
     pickPlayableCameraTarget(engine, event)
