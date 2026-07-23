@@ -82,7 +82,13 @@ try {
 
       const screenshot = `${artifactDir}/contextual-${scenario}.png`;
       await page.screenshot({ path: screenshot, fullPage: true });
-      report.push({ scenario, status: "captured", screenshot, diagnostics, events });
+      report.push({
+        scenario,
+        status: "captured",
+        screenshot,
+        diagnostics,
+        events,
+      });
     } catch (error) {
       const screenshot = `${artifactDir}/contextual-${scenario}-failure.png`;
       await page
