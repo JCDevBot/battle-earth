@@ -123,6 +123,29 @@ function exposeContextualPlan(engine, result, config = {}) {
   );
 }
 
+function isPlayablePoint(engine, point) {
+  return typeof engine.bounds?.containsPoint === "function"
+    ? engine.bounds.containsPoint(point, 4)
+    : true;
+}
+
+function pickPlayableGroundPlanePoint(engine) {
+  const ray = engine.raycaster?.ray;
+  if (!ray?.intersectPlane) return null;
+
+  const targetY = Number(engine.controls?.target?.y);
+  const planeY = Number.isFinite(targetY) ? targetY : 0;
+  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -planeY);
+  const point = new THREE.Vector3();
+  if (!ray.intersectPlane(plane, point) || !isPlayablePoint(engine, point)) {
+    return null;
+  }
+
+  const groundY = Number(engine.terrain?.getWorldHeight?.(point.x, point.z));
+  if (Number.isFinite(groundY)) point.y = groundY;
+  return { point, hit: null };
+}
+
 export function pickPlayableTerrainPoint(engine, event) {
   if (
     !engine?.deployMode ||
@@ -135,14 +158,13 @@ export function pickPlayableTerrainPoint(engine, event) {
 
   engine.updatePointerFromEvent(event);
   const hits = engine.raycaster.intersectObject(engine.terrain.mesh, false);
-  const playableHit = hits.find((hit) =>
-    typeof engine.bounds?.containsPoint === "function"
-      ? engine.bounds.containsPoint(hit.point, 4)
-      : true,
-  );
-  if (!playableHit) return null;
+  const playableHit = hits.find((hit) => isPlayablePoint(engine, hit.point));
+  if (playableHit) return { point: playableHit.point, hit: playableHit };
 
-  return { point: playableHit.point, hit: playableHit };
+  // A deformed or not-yet-updated terrain mesh can occasionally miss a valid
+  // screen-space deployment click. Fall back to the camera ray's ground plane,
+  // but retain the same playable-bounds validation before allowing a spawn.
+  return pickPlayableGroundPlanePoint(engine);
 }
 
 function installTerrainFirstDeploymentPicking(prototype) {
