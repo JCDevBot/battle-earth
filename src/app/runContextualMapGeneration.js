@@ -1,5 +1,6 @@
 import { analyzeOsmData } from "../map/services/analyzeOsmData";
 import { generateProceduralOsmData } from "../map/services/ProceduralFallback";
+import { mergeCompatibleGeometries } from "../map/utils/mergeCompatibleGeometries.js";
 import { createContextualGenerationDiagnostics } from "./contextualGenerationDiagnostics.js";
 import { filterMapDataForDiagnosticLayer } from "./diagnosticMapLayers.js";
 import { beginContextualRuntimeMeasurement } from "./contextualRuntimeMeasurement.js";
@@ -130,6 +131,9 @@ export async function runContextualMapGeneration(engine, config = {}) {
 
     engine.performance?.removeLayerEntries?.("units");
     engine.infantry?.clear?.();
+    if (engine.builder) {
+      engine.builder.safeMergeGeometries = mergeCompatibleGeometries;
+    }
     engine.builder.build(mapData, {
       ...config,
       ...plan.visualFeatures,
