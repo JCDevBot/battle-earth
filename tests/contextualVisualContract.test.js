@@ -41,7 +41,7 @@ describe("contextual visual contract", () => {
     },
   );
 
-  it("rejects suspicious water left in the rendered scene", () => {
+  it("rejects invalid water left in the rendered scene", () => {
     expect(
       validateContextualVisualContract("replica-battle", {
         ...contextualDiagnostics,
@@ -49,7 +49,7 @@ describe("contextual visual contract", () => {
         waterFeaturesInvalid: "2",
         waterFeaturesQuarantined: "1",
       }),
-    ).toContain("suspicious water geometry remained unquarantined");
+    ).toContain("invalid water geometry remained unquarantined");
   });
 
   it("rejects inconsistent geometry diagnostics", () => {
@@ -70,6 +70,32 @@ describe("contextual visual contract", () => {
     expect(errors).toContain(
       "invalid water geometry was reported without a suspicious flag",
     );
+  });
+
+  it("rejects fractional or negative water geometry counts", () => {
+    expect(
+      validateContextualVisualContract("replica-battle", {
+        ...contextualDiagnostics,
+        waterFeaturesInspected: "2.5",
+        waterFeaturesInvalid: "-1",
+      }),
+    ).toContain("water geometry counts must be non-negative integers");
+  });
+
+  it("requires the suspicious flag to agree with invalid geometry", () => {
+    expect(
+      validateContextualVisualContract("replica-battle", {
+        ...contextualDiagnostics,
+        suspiciousGeometry: "true",
+      }),
+    ).toContain("suspicious water flag was set without invalid geometry");
+
+    expect(
+      validateContextualVisualContract("replica-battle", {
+        ...contextualDiagnostics,
+        suspiciousGeometry: "",
+      }),
+    ).toContain("suspicious water geometry flag was unavailable");
   });
 
   it("preserves the explicit no-context control contract", () => {
