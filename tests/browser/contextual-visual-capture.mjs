@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import { validateContextualVisualContract } from "../../src/app/contextualVisualContract.js";
+import { validateContextualVisualSuite } from "../../src/app/contextualVisualSuiteContract.js";
 
 const baseUrl = process.env.BATTLE_EARTH_BASE_URL ?? "http://127.0.0.1:4173";
 const artifactDir = process.env.BROWSER_ARTIFACT_DIR ?? "browser-artifacts";
@@ -135,11 +136,19 @@ try {
   await browser.close();
 }
 
+const suiteErrors = validateContextualVisualSuite(report);
+await writeFile(
+  `${artifactDir}/contextual-visual-suite-report.json`,
+  `${JSON.stringify({ status: suiteErrors.length ? "invalid" : "valid", errors: suiteErrors }, null, 2)}\n`,
+);
+
 const failures = report.filter((entry) => entry.status !== "captured");
-if (failures.length > 0) {
-  throw new Error(
-    `Invalid contextual capture for ${failures.length} scenario(s): ${failures
-      .map((entry) => entry.scenario)
-      .join(", ")}`,
-  );
+if (failures.length > 0 || suiteErrors.length > 0) {
+  const routeSummary = failures.length
+    ? `invalid routes: ${failures.map((entry) => entry.scenario).join(", ")}`
+    : "all routes captured";
+  const suiteSummary = suiteErrors.length
+    ? `suite errors: ${suiteErrors.join("; ")}`
+    : "suite consistent";
+  throw new Error(`Contextual visual gate failed (${routeSummary}; ${suiteSummary})`);
 }
