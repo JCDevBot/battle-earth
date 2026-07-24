@@ -1,10 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
-const baseUrl =
-  process.env.BATTLE_EARTH_BASE_URL ?? "http://127.0.0.1:4173";
-const artifactDir =
-  process.env.BROWSER_ARTIFACT_DIR ?? "browser-artifacts";
+const baseUrl = process.env.BATTLE_EARTH_BASE_URL ?? "http://127.0.0.1:4173";
+const artifactDir = process.env.BROWSER_ARTIFACT_DIR ?? "browser-artifacts";
 const routes = [
   "replica-battle-terrain-only",
   "replica-battle-water-only",
@@ -31,9 +29,7 @@ function validateContextContract(scenario, diagnostics) {
   if (diagnostics.contextualGeneration !== "ready") {
     errors.push("contextual generation did not report ready");
   }
-  if (
-    [playableWidth, playableDepth, renderWidth, renderDepth].includes(null)
-  ) {
+  if ([playableWidth, playableDepth, renderWidth, renderDepth].includes(null)) {
     errors.push("one or more map dimensions were unavailable");
     return errors;
   }
