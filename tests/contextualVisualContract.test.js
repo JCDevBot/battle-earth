@@ -100,6 +100,22 @@ describe("contextual visual contract", () => {
     ).toContain("suspicious water geometry flag was unavailable");
   });
 
+  it("rejects zero or negative contextual map dimensions", () => {
+    expect(
+      validateContextualVisualContract("replica-battle", {
+        ...contextualDiagnostics,
+        playableWidthMeters: "0",
+      }),
+    ).toContain("map dimensions must be positive finite values");
+
+    expect(
+      validateContextualVisualContract("replica-battle", {
+        ...contextualDiagnostics,
+        renderDepthMeters: "-420",
+      }),
+    ).toContain("map dimensions must be positive finite values");
+  });
+
   it("preserves the explicit no-context control contract", () => {
     expect(
       validateContextualVisualContract(
