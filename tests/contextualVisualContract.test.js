@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  validateContextualVisualContract,
-} from "../src/app/contextualVisualContract.js";
+import { validateContextualVisualContract } from "../src/app/contextualVisualContract.js";
 
 const contextualDiagnostics = {
   contextualGeneration: "ready",
@@ -26,20 +24,17 @@ describe("contextual visual contract", () => {
     ).toEqual([]);
   });
 
-  it(
-    "accepts suspicious water only when every invalid feature was quarantined",
-    () => {
-      expect(
-        validateContextualVisualContract("replica-battle", {
-          ...contextualDiagnostics,
-          suspiciousGeometry: "true",
-          waterFeaturesInspected: "4",
-          waterFeaturesInvalid: "2",
-          waterFeaturesQuarantined: "2",
-        }),
-      ).toEqual([]);
-    },
-  );
+  it("accepts suspicious water only when every invalid feature was quarantined", () => {
+    expect(
+      validateContextualVisualContract("replica-battle", {
+        ...contextualDiagnostics,
+        suspiciousGeometry: "true",
+        waterFeaturesInspected: "4",
+        waterFeaturesInvalid: "2",
+        waterFeaturesQuarantined: "2",
+      }),
+    ).toEqual([]);
+  });
 
   it("rejects invalid water left in the rendered scene", () => {
     expect(
