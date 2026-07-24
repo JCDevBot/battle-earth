@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  validateContextualVisualContract,
-} from "../src/app/contextualVisualContract.js";
+import { validateContextualVisualContract } from "../src/app/contextualVisualContract.js";
 
 const contextualDiagnostics = {
   contextualGeneration: "ready",
