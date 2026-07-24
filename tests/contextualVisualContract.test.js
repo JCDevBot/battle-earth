@@ -45,7 +45,10 @@ describe("contextual visual contract", () => {
 
   it("rejects scenarios outside the contextual visual gate", () => {
     expect(
-      validateContextualVisualContract("prototype-smoke", contextualDiagnostics),
+      validateContextualVisualContract(
+        "prototype-smoke",
+        contextualDiagnostics,
+      ),
     ).toEqual(["scenario is not part of the contextual visual gate"]);
   });
 
