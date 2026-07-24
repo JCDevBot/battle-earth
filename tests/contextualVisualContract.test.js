@@ -25,14 +25,28 @@ const noContextDiagnostics = {
   outerSkirtVisible: "true",
 };
 
+const contextualScenarioIds = [
+  "replica-battle",
+  "replica-battle-terrain-only",
+  "replica-battle-water-only",
+  "replica-battle-roads-only",
+  "replica-battle-buildings-only",
+  "replica-battle-vegetation-only",
+];
+
 describe("contextual visual contract", () => {
-  it("accepts a coherent contextual render", () => {
+  it("accepts every registered contextual replica route", () => {
+    for (const scenario of contextualScenarioIds) {
+      expect(
+        validateContextualVisualContract(scenario, contextualDiagnostics),
+      ).toEqual([]);
+    }
+  });
+
+  it("rejects scenarios outside the contextual visual gate", () => {
     expect(
-      validateContextualVisualContract(
-        "replica-battle-water-only",
-        contextualDiagnostics,
-      ),
-    ).toEqual([]);
+      validateContextualVisualContract("prototype-smoke", contextualDiagnostics),
+    ).toEqual(["scenario is not part of the contextual visual gate"]);
   });
 
   it("accepts suspicious water only when every invalid feature was quarantined", () => {
