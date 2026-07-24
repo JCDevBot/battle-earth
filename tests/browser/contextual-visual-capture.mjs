@@ -80,6 +80,10 @@ try {
         renderWidthMeters: element.dataset.renderWidthMeters ?? null,
         renderDepthMeters: element.dataset.renderDepthMeters ?? null,
         outerSkirtVisible: element.dataset.outerSkirtVisible ?? null,
+        renderedAreaMultiplier:
+          element.dataset.renderedAreaMultiplier ?? null,
+        renderedAreaIncreasePercent:
+          element.dataset.renderedAreaIncreasePercent ?? null,
         suspiciousGeometry:
           element.dataset.contextualSuspiciousGeometry ?? null,
         waterFeaturesInspected:
