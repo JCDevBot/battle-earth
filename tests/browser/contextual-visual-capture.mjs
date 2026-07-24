@@ -3,8 +3,7 @@ import { chromium } from "playwright";
 import { validateContextualVisualContract } from "../../src/app/contextualVisualContract.js";
 import { validateContextualVisualSuite } from "../../src/app/contextualVisualSuiteContract.js";
 
-const baseUrl =
-  process.env.BATTLE_EARTH_BASE_URL ?? "http://127.0.0.1:4173";
+const baseUrl = process.env.BATTLE_EARTH_BASE_URL ?? "http://127.0.0.1:4173";
 const artifactDir = process.env.BROWSER_ARTIFACT_DIR ?? "browser-artifacts";
 const routes = [
   "replica-battle-terrain-only",
@@ -82,8 +81,7 @@ try {
         renderWidthMeters: element.dataset.renderWidthMeters ?? null,
         renderDepthMeters: element.dataset.renderDepthMeters ?? null,
         outerSkirtVisible: element.dataset.outerSkirtVisible ?? null,
-        renderedAreaMultiplier:
-          element.dataset.renderedAreaMultiplier ?? null,
+        renderedAreaMultiplier: element.dataset.renderedAreaMultiplier ?? null,
         renderedAreaIncreasePercent:
           element.dataset.renderedAreaIncreasePercent ?? null,
         suspiciousGeometry:
