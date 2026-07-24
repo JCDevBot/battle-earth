@@ -103,15 +103,24 @@ jobs:
       - name: Check formatting
         id: format
         run: |
+          set +e
           set -o pipefail
           npm run format:check 2>&1 | tee format-report.txt
+          format_status=${PIPESTATUS[0]}
+          if [ "$format_status" -ne 0 ]; then
+            npm run format >/dev/null 2>&1
+            git diff -- . > prettier-format.patch
+          fi
+          exit "$format_status"
 
       - name: Upload formatting diagnostics
         if: failure() && steps.format.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: formatting-diagnostics-node-${{ matrix.node-version }}
-          path: format-report.txt
+          path: |
+            format-report.txt
+            prettier-format.patch
           if-no-files-found: error
 
       - name: Build
