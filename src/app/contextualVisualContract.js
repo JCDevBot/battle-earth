@@ -4,6 +4,10 @@ function numberOrNull(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function isPositive(value) {
+  return Number.isFinite(value) && value > 0;
+}
+
 function isNonNegativeInteger(value) {
   return Number.isInteger(value) && value >= 0;
 }
@@ -58,6 +62,10 @@ export function validateContextualVisualContract(scenario, diagnostics = {}) {
     [playableWidth, playableDepth, renderWidth, renderDepth].includes(null)
   ) {
     errors.push("one or more map dimensions were unavailable");
+    return errors;
+  }
+  if (![playableWidth, playableDepth, renderWidth, renderDepth].every(isPositive)) {
+    errors.push("map dimensions must be positive finite values");
     return errors;
   }
 
