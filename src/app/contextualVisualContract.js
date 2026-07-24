@@ -12,6 +12,10 @@ function isNonNegativeInteger(value) {
   return Number.isInteger(value) && value >= 0;
 }
 
+function approximatelyEqual(left, right, tolerance = 0.001) {
+  return Math.abs(left - right) <= tolerance * Math.max(1, Math.abs(right));
+}
+
 function validateWaterGeometryDiagnostics(diagnostics) {
   const errors = [];
   const inspected = numberOrNull(diagnostics.waterFeaturesInspected);
@@ -48,6 +52,41 @@ function validateWaterGeometryDiagnostics(diagnostics) {
   return errors;
 }
 
+function validateAreaDiagnostics(
+  diagnostics,
+  playableWidth,
+  playableDepth,
+  renderWidth,
+  renderDepth,
+) {
+  const errors = [];
+  const reportedMultiplier = numberOrNull(diagnostics.renderedAreaMultiplier);
+  const reportedIncreasePercent = numberOrNull(
+    diagnostics.renderedAreaIncreasePercent,
+  );
+
+  if (reportedMultiplier === null || reportedIncreasePercent === null) {
+    errors.push("contextual area diagnostics were unavailable");
+    return errors;
+  }
+  if (!isPositive(reportedMultiplier) || reportedIncreasePercent < 0) {
+    errors.push("contextual area diagnostics must be non-negative finite values");
+    return errors;
+  }
+
+  const expectedMultiplier =
+    (renderWidth * renderDepth) / (playableWidth * playableDepth);
+  const expectedIncreasePercent = (expectedMultiplier - 1) * 100;
+  if (!approximatelyEqual(reportedMultiplier, expectedMultiplier)) {
+    errors.push("rendered area multiplier did not match map dimensions");
+  }
+  if (!approximatelyEqual(reportedIncreasePercent, expectedIncreasePercent)) {
+    errors.push("rendered area increase did not match map dimensions");
+  }
+
+  return errors;
+}
+
 export function validateContextualVisualContract(scenario, diagnostics = {}) {
   const errors = [];
   const playableWidth = numberOrNull(diagnostics.playableWidthMeters);
@@ -64,7 +103,9 @@ export function validateContextualVisualContract(scenario, diagnostics = {}) {
     errors.push("one or more map dimensions were unavailable");
     return errors;
   }
-  if (![playableWidth, playableDepth, renderWidth, renderDepth].every(isPositive)) {
+  if (
+    ![playableWidth, playableDepth, renderWidth, renderDepth].every(isPositive)
+  ) {
     errors.push("map dimensions must be positive finite values");
     return errors;
   }
@@ -85,6 +126,15 @@ export function validateContextualVisualContract(scenario, diagnostics = {}) {
     }
   }
 
+  errors.push(
+    ...validateAreaDiagnostics(
+      diagnostics,
+      playableWidth,
+      playableDepth,
+      renderWidth,
+      renderDepth,
+    ),
+  );
   errors.push(...validateWaterGeometryDiagnostics(diagnostics));
   return errors;
 }
