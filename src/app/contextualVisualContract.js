@@ -8,40 +8,8 @@ function isNonNegativeInteger(value) {
   return Number.isInteger(value) && value >= 0;
 }
 
-export function validateContextualVisualContract(scenario, diagnostics = {}) {
+function validateWaterGeometryDiagnostics(diagnostics) {
   const errors = [];
-  const playableWidth = numberOrNull(diagnostics.playableWidthMeters);
-  const playableDepth = numberOrNull(diagnostics.playableDepthMeters);
-  const renderWidth = numberOrNull(diagnostics.renderWidthMeters);
-  const renderDepth = numberOrNull(diagnostics.renderDepthMeters);
-
-  if (diagnostics.contextualGeneration !== "ready") {
-    errors.push("contextual generation did not report ready");
-  }
-  if (
-    [playableWidth, playableDepth, renderWidth, renderDepth].includes(null)
-  ) {
-    errors.push("one or more map dimensions were unavailable");
-    return errors;
-  }
-
-  if (scenario === "replica-battle-no-context") {
-    if (renderWidth !== playableWidth || renderDepth !== playableDepth) {
-      errors.push("no-context control unexpectedly expanded render dimensions");
-    }
-    if (diagnostics.outerSkirtVisible !== "true") {
-      errors.push("no-context control did not retain the legacy outer skirt");
-    }
-    return errors;
-  }
-
-  if (renderWidth <= playableWidth || renderDepth <= playableDepth) {
-    errors.push("contextual route did not expand both render dimensions");
-  }
-  if (diagnostics.outerSkirtVisible !== "false") {
-    errors.push("contextual route still reports the legacy outer skirt");
-  }
-
   const inspected = numberOrNull(diagnostics.waterFeaturesInspected);
   const invalid = numberOrNull(diagnostics.waterFeaturesInvalid);
   const quarantined = numberOrNull(diagnostics.waterFeaturesQuarantined);
@@ -73,5 +41,42 @@ export function validateContextualVisualContract(scenario, diagnostics = {}) {
     errors.push("suspicious water geometry flag was unavailable");
   }
 
+  return errors;
+}
+
+export function validateContextualVisualContract(scenario, diagnostics = {}) {
+  const errors = [];
+  const playableWidth = numberOrNull(diagnostics.playableWidthMeters);
+  const playableDepth = numberOrNull(diagnostics.playableDepthMeters);
+  const renderWidth = numberOrNull(diagnostics.renderWidthMeters);
+  const renderDepth = numberOrNull(diagnostics.renderDepthMeters);
+
+  if (diagnostics.contextualGeneration !== "ready") {
+    errors.push("contextual generation did not report ready");
+  }
+  if (
+    [playableWidth, playableDepth, renderWidth, renderDepth].includes(null)
+  ) {
+    errors.push("one or more map dimensions were unavailable");
+    return errors;
+  }
+
+  if (scenario === "replica-battle-no-context") {
+    if (renderWidth !== playableWidth || renderDepth !== playableDepth) {
+      errors.push("no-context control unexpectedly expanded render dimensions");
+    }
+    if (diagnostics.outerSkirtVisible !== "true") {
+      errors.push("no-context control did not retain the legacy outer skirt");
+    }
+  } else {
+    if (renderWidth <= playableWidth || renderDepth <= playableDepth) {
+      errors.push("contextual route did not expand both render dimensions");
+    }
+    if (diagnostics.outerSkirtVisible !== "false") {
+      errors.push("contextual route still reports the legacy outer skirt");
+    }
+  }
+
+  errors.push(...validateWaterGeometryDiagnostics(diagnostics));
   return errors;
 }
