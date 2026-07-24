@@ -1,3 +1,15 @@
+import { SCENARIO_IDS } from "./scenarioRegistry.js";
+
+const CONTEXTUAL_VISUAL_SCENARIOS = new Set([
+  SCENARIO_IDS.REPLICA_BATTLE,
+  SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT,
+  SCENARIO_IDS.REPLICA_BATTLE_TERRAIN_ONLY,
+  SCENARIO_IDS.REPLICA_BATTLE_WATER_ONLY,
+  SCENARIO_IDS.REPLICA_BATTLE_ROADS_ONLY,
+  SCENARIO_IDS.REPLICA_BATTLE_BUILDINGS_ONLY,
+  SCENARIO_IDS.REPLICA_BATTLE_VEGETATION_ONLY,
+]);
+
 function numberOrNull(value) {
   if (value === null || value === undefined || value === "") return null;
   const number = Number(value);
@@ -89,6 +101,11 @@ function validateAreaDiagnostics(
 
 export function validateContextualVisualContract(scenario, diagnostics = {}) {
   const errors = [];
+  if (!CONTEXTUAL_VISUAL_SCENARIOS.has(scenario)) {
+    errors.push("scenario is not part of the contextual visual gate");
+    return errors;
+  }
+
   const playableWidth = numberOrNull(diagnostics.playableWidthMeters);
   const playableDepth = numberOrNull(diagnostics.playableDepthMeters);
   const renderWidth = numberOrNull(diagnostics.renderWidthMeters);
@@ -110,7 +127,7 @@ export function validateContextualVisualContract(scenario, diagnostics = {}) {
     return errors;
   }
 
-  if (scenario === "replica-battle-no-context") {
+  if (scenario === SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT) {
     if (renderWidth !== playableWidth || renderDepth !== playableDepth) {
       errors.push("no-context control unexpectedly expanded render dimensions");
     }
