@@ -36,12 +36,34 @@ describe("contextual visual suite contract", () => {
     expect(validateContextualVisualSuite(validReport())).toEqual([]);
   });
 
+  it("rejects a non-array report", () => {
+    expect(validateContextualVisualSuite({})).toEqual([
+      "visual capture report was not an array",
+    ]);
+  });
+
   it("rejects a missing route", () => {
     const report = validReport().filter(
       (item) => item.scenario !== "replica-battle-water-only",
     );
     expect(validateContextualVisualSuite(report)).toContain(
       "missing visual capture for replica-battle-water-only",
+    );
+  });
+
+  it("rejects duplicate route captures instead of silently overwriting them", () => {
+    const report = validReport();
+    report.push(entry("replica-battle-water-only"));
+    expect(validateContextualVisualSuite(report)).toContain(
+      "duplicate visual capture for replica-battle-water-only",
+    );
+  });
+
+  it("rejects unexpected routes in the visual report", () => {
+    const report = validReport();
+    report.push(entry("prototype-smoke"));
+    expect(validateContextualVisualSuite(report)).toContain(
+      "unexpected visual capture for prototype-smoke",
     );
   });
 
