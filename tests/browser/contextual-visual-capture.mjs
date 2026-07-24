@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
+import { validateContextualVisualContract } from "../../src/app/contextualVisualContract.js";
 
 const baseUrl = process.env.BATTLE_EARTH_BASE_URL ?? "http://127.0.0.1:4173";
 const artifactDir = process.env.BROWSER_ARTIFACT_DIR ?? "browser-artifacts";
@@ -12,46 +13,6 @@ const routes = [
   "replica-battle",
   "replica-battle-no-context",
 ];
-
-function numberOrNull(value) {
-  if (value === null || value === undefined || value === "") return null;
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-}
-
-function validateContextContract(scenario, diagnostics) {
-  const errors = [];
-  const playableWidth = numberOrNull(diagnostics.playableWidthMeters);
-  const playableDepth = numberOrNull(diagnostics.playableDepthMeters);
-  const renderWidth = numberOrNull(diagnostics.renderWidthMeters);
-  const renderDepth = numberOrNull(diagnostics.renderDepthMeters);
-
-  if (diagnostics.contextualGeneration !== "ready") {
-    errors.push("contextual generation did not report ready");
-  }
-  if ([playableWidth, playableDepth, renderWidth, renderDepth].includes(null)) {
-    errors.push("one or more map dimensions were unavailable");
-    return errors;
-  }
-
-  if (scenario === "replica-battle-no-context") {
-    if (renderWidth !== playableWidth || renderDepth !== playableDepth) {
-      errors.push("no-context control unexpectedly expanded render dimensions");
-    }
-    if (diagnostics.outerSkirtVisible !== "true") {
-      errors.push("no-context control did not retain the legacy outer skirt");
-    }
-    return errors;
-  }
-
-  if (renderWidth <= playableWidth || renderDepth <= playableDepth) {
-    errors.push("contextual route did not expand both render dimensions");
-  }
-  if (diagnostics.outerSkirtVisible !== "false") {
-    errors.push("contextual route still reports the legacy outer skirt");
-  }
-  return errors;
-}
 
 await mkdir(artifactDir, { recursive: true });
 
@@ -129,7 +90,10 @@ try {
           element.dataset.contextualWaterFeaturesQuarantined ?? null,
       }));
       const canvasBounds = await canvas.boundingBox();
-      const contractErrors = validateContextContract(scenario, diagnostics);
+      const contractErrors = validateContextualVisualContract(
+        scenario,
+        diagnostics,
+      );
 
       const screenshot = `${artifactDir}/contextual-${scenario}.png`;
       await page.screenshot({ path: screenshot, fullPage: true });
