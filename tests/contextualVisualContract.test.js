@@ -7,6 +7,8 @@ const contextualDiagnostics = {
   playableDepthMeters: "300",
   renderWidthMeters: "520",
   renderDepthMeters: "420",
+  renderedAreaMultiplier: "1.82",
+  renderedAreaIncreasePercent: "82",
   outerSkirtVisible: "false",
   suspiciousGeometry: "false",
   waterFeaturesInspected: "3",
@@ -18,6 +20,8 @@ const noContextDiagnostics = {
   ...contextualDiagnostics,
   renderWidthMeters: "400",
   renderDepthMeters: "300",
+  renderedAreaMultiplier: "1",
+  renderedAreaIncreasePercent: "0",
   outerSkirtVisible: "true",
 };
 
@@ -114,6 +118,40 @@ describe("contextual visual contract", () => {
         renderDepthMeters: "-420",
       }),
     ).toContain("map dimensions must be positive finite values");
+  });
+
+  it("requires area diagnostics to agree with the exposed dimensions", () => {
+    expect(
+      validateContextualVisualContract("replica-battle", {
+        ...contextualDiagnostics,
+        renderedAreaMultiplier: "1.4",
+      }),
+    ).toContain("rendered area multiplier did not match map dimensions");
+
+    expect(
+      validateContextualVisualContract("replica-battle", {
+        ...contextualDiagnostics,
+        renderedAreaIncreasePercent: "40",
+      }),
+    ).toContain("rendered area increase did not match map dimensions");
+  });
+
+  it("requires available, non-negative area diagnostics", () => {
+    expect(
+      validateContextualVisualContract("replica-battle", {
+        ...contextualDiagnostics,
+        renderedAreaMultiplier: "",
+      }),
+    ).toContain("contextual area diagnostics were unavailable");
+
+    expect(
+      validateContextualVisualContract("replica-battle", {
+        ...contextualDiagnostics,
+        renderedAreaIncreasePercent: "-1",
+      }),
+    ).toContain(
+      "contextual area diagnostics must be non-negative finite values",
+    );
   });
 
   it("preserves the explicit no-context control contract", () => {
