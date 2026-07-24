@@ -8,6 +8,11 @@ const CONTEXTUAL_SCENARIOS = [
   SCENARIO_IDS.REPLICA_BATTLE_VEGETATION_ONLY,
   SCENARIO_IDS.REPLICA_BATTLE,
 ];
+const REQUIRED_SCENARIOS = [
+  ...CONTEXTUAL_SCENARIOS,
+  SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT,
+];
+const REQUIRED_SCENARIO_SET = new Set(REQUIRED_SCENARIOS);
 
 function finiteNumber(value) {
   if (value === null || value === undefined || value === "") return null;
@@ -41,13 +46,26 @@ function sameDimensions(left, right) {
  */
 export function validateContextualVisualSuite(report = []) {
   const errors = [];
-  const byScenario = new Map(report.map((entry) => [entry?.scenario, entry]));
+  if (!Array.isArray(report)) {
+    return ["visual capture report was not an array"];
+  }
 
-  for (const scenario of [
-    ...CONTEXTUAL_SCENARIOS,
-    SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT,
-  ]) {
-    const entry = byScenario.get(scenario);
+  const entriesByScenario = new Map();
+  for (const entry of report) {
+    const scenario = entry?.scenario;
+    if (!REQUIRED_SCENARIO_SET.has(scenario)) {
+      errors.push(`unexpected visual capture for ${scenario ?? "unknown scenario"}`);
+      continue;
+    }
+    if (entriesByScenario.has(scenario)) {
+      errors.push(`duplicate visual capture for ${scenario}`);
+      continue;
+    }
+    entriesByScenario.set(scenario, entry);
+  }
+
+  for (const scenario of REQUIRED_SCENARIOS) {
+    const entry = entriesByScenario.get(scenario);
     if (!entry) {
       errors.push(`missing visual capture for ${scenario}`);
       continue;
@@ -60,19 +78,19 @@ export function validateContextualVisualSuite(report = []) {
     }
   }
 
-  const baseline = byScenario.get(SCENARIO_IDS.REPLICA_BATTLE);
+  const baseline = entriesByScenario.get(SCENARIO_IDS.REPLICA_BATTLE);
   if (!baseline?.diagnostics) return errors;
   const baselineDimensions = dimensions(baseline);
 
   for (const scenario of CONTEXTUAL_SCENARIOS) {
-    const entry = byScenario.get(scenario);
+    const entry = entriesByScenario.get(scenario);
     if (!entry?.diagnostics) continue;
     if (!sameDimensions(dimensions(entry), baselineDimensions)) {
       errors.push(`contextual dimensions diverged for ${scenario}`);
     }
   }
 
-  const control = byScenario.get(SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT);
+  const control = entriesByScenario.get(SCENARIO_IDS.REPLICA_BATTLE_NO_CONTEXT);
   if (control?.diagnostics) {
     const controlDimensions = dimensions(control);
     if (
