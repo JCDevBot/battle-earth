@@ -14,6 +14,13 @@ const contextualDiagnostics = {
   waterFeaturesQuarantined: "0",
 };
 
+const noContextDiagnostics = {
+  ...contextualDiagnostics,
+  renderWidthMeters: "400",
+  renderDepthMeters: "300",
+  outerSkirtVisible: "true",
+};
+
 describe("contextual visual contract", () => {
   it("accepts a coherent contextual render", () => {
     expect(
@@ -95,14 +102,21 @@ describe("contextual visual contract", () => {
 
   it("preserves the explicit no-context control contract", () => {
     expect(
-      validateContextualVisualContract("replica-battle-no-context", {
-        contextualGeneration: "ready",
-        playableWidthMeters: "400",
-        playableDepthMeters: "300",
-        renderWidthMeters: "400",
-        renderDepthMeters: "300",
-        outerSkirtVisible: "true",
-      }),
+      validateContextualVisualContract(
+        "replica-battle-no-context",
+        noContextDiagnostics,
+      ),
     ).toEqual([]);
+  });
+
+  it("validates water geometry in the no-context control", () => {
+    expect(
+      validateContextualVisualContract("replica-battle-no-context", {
+        ...noContextDiagnostics,
+        suspiciousGeometry: "true",
+        waterFeaturesInvalid: "2",
+        waterFeaturesQuarantined: "1",
+      }),
+    ).toContain("invalid water geometry remained unquarantined");
   });
 });
