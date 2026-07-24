@@ -4,6 +4,10 @@ function numberOrNull(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function isNonNegativeInteger(value) {
+  return Number.isInteger(value) && value >= 0;
+}
+
 export function validateContextualVisualContract(scenario, diagnostics = {}) {
   const errors = [];
   const playableWidth = numberOrNull(diagnostics.playableWidthMeters);
@@ -46,17 +50,27 @@ export function validateContextualVisualContract(scenario, diagnostics = {}) {
     errors.push("water geometry diagnostics were unavailable");
     return errors;
   }
+  if (![inspected, invalid, quarantined].every(isNonNegativeInteger)) {
+    errors.push("water geometry counts must be non-negative integers");
+    return errors;
+  }
   if (invalid > inspected) {
     errors.push("invalid water feature count exceeded inspected count");
   }
   if (quarantined > invalid) {
     errors.push("quarantined water feature count exceeded invalid count");
   }
-  if (diagnostics.suspiciousGeometry === "true" && quarantined < invalid) {
-    errors.push("suspicious water geometry remained unquarantined");
+  if (quarantined < invalid) {
+    errors.push("invalid water geometry remained unquarantined");
+  }
+  if (diagnostics.suspiciousGeometry === "true" && invalid === 0) {
+    errors.push("suspicious water flag was set without invalid geometry");
   }
   if (diagnostics.suspiciousGeometry === "false" && invalid > 0) {
     errors.push("invalid water geometry was reported without a suspicious flag");
+  }
+  if (!["true", "false"].includes(diagnostics.suspiciousGeometry)) {
+    errors.push("suspicious water geometry flag was unavailable");
   }
 
   return errors;
